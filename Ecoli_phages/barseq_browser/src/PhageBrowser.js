@@ -2,18 +2,11 @@ import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
 import * as aq from 'https://cdn.jsdelivr.net/npm/arquero@7.2.0/dist/arquero.min.js/+esm';
 import { sidebar_morgan_info } from "./local_copy_sgb/helper_functions.js";
 
-/*
-import { SimpleGenomeBrowser } from "https://cdn.jsdelivr.net/npm/simple-genome-browser@1.0.2/src/SimpleGenomeBrowser.js";
-import { geneTableTrack, gffTrack, heatmapTrack } from "https://cdn.jsdelivr.net/npm/simple-genome-browser@1.0.2/src/data_tracks.js";
-import { quantitativeFeatureTrack, quantitativeLineTrack, quantitativePointTrack } from "https://cdn.jsdelivr.net/npm/simple-genome-browser@1.0.2/src/SGB_tracks.js";
-import { reverse_complement, copy_sequence } from "https://cdn.jsdelivr.net/npm/simple-genome-browser@1.0.2/src/util.js";
-*/
-
 import { SimpleGenomeBrowser, serverPointData } from "./local_copy_sgb/SimpleGenomeBrowser.js";
 import { geneTableTrack, heatmapTrack } from "./local_copy_sgb/data_tracks.js";
 import { quantitativePointTrack } from "./local_copy_sgb/SGB_tracks.js";
 
-const development_mode = 'localdev'; //'production'; // 'localdev'; //'development';
+const development_mode = 'localdev'; //'production'; //'development';
 
 const ECOCYC_ids = {'Keio': 'ECOLI', 'BL21': 'GCF_000022665'};
 

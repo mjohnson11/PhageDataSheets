@@ -11,7 +11,7 @@ The data sources for this browser are:
 4. Phage genomes for each phage (from Alexey, notes needed...)
 5. AlphaFold models for each phage (notes needed...)
 
-This browser additionally links to an RB-TnSeq and DubSeq genome browser, which let's users look at the raw and processed data across the genome for any phages they are interested in. We focus here on the BW25113 RB-TnSeq data, since it is the most informative, but browsers are available for BL21 RB-TnSeq data and BW25113 DubSeq data (PROVIDE LINKS).
+This browser additionally links to an RB-TnSeq and DubSeq genome browser, which let's users look at the raw and processed data across the genome for any phages they are interested in. We focus here on the BW25113 RB-TnSeq data, since it is the most informative, but browsers are available for BL21 RB-TnSeq data and BW25113 DubSeq data (LINKS TO COME).
 
 The data sources for these are:
 1. Metadata on the RB-TnSeq experiments (RBTnseq_sets.csv)
@@ -25,5 +25,3 @@ This browser also queries for additional data on the server:
 2. DubSeq scores (scaled log2-fold-change) for each fragment (DubSeq_scores.parquet)
 3. RB-TnSeq counts for each barcode/insertion (strain_counts.parquet)
 4. RB-TnSeq scores (scaled log2-fold-change) for each barcode/insertion (strain_counts.parquet)
-
-DOWNLOAD OPTIONS DISCUSS WITH MORGAN AND ALEXEY
