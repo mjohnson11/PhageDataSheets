@@ -1,0 +1,88 @@
+#browser_div {
+  position: absolute;
+}
+
+/*
+.sidebar_content_div::-webkit-scrollbar {
+  width: 0px;
+  background: transparent;
+}
+*/
+
+.sidebar_title {
+  font-size: 1.5em;
+}
+
+.gene_tooltip p {
+  margin: 2px;
+}
+
+.zoom_thing:hover {
+  opacity: 0.5;
+}
+
+.sgb_gene:hover {
+  opacity: 0.7;
+}
+
+.gene_searchbar {
+  position: absolute;
+  top: 0px;
+  left: 5px;
+  width: 170px;
+  height: 25px;
+  outline: "none";
+  border: "none";
+  background-color: "#FFF";
+  color: "#333";
+}
+
+.autoComplete_wrapper ul {
+  position:absolute;
+  top: 25px;
+  left: 5px;
+  margin: 0px;
+  padding: 0px;
+  width: 170px;
+  background-color: #CCC;
+  border-left: 1px solid #CCC;
+  border-right: 1px solid #CCC;
+  z-index: 11;
+}
+
+.autoComplete_wrapper li {
+  margin-top: 1px;
+  margin-bottom: 1px;
+  padding-left: 5px;
+  padding-right: 20px;
+  background-color: #AAA;
+  list-style-type: none;
+  color: #333;
+  z-index: 20;
+}
+
+.autoComplete_wrapper li mark {
+  color: #FFF;
+  background-color: transparent;
+}
+
+.autoComplete_wrapper li:hover {
+  background-color: #FF8888;
+  cursor: pointer;
+}
+
+.autoComplete_wrapper li[aria-selected="true"] {
+  background-color: #FF8888;
+}
+
+.sgb_list_selected {
+  background-color: #FF8888 !important;
+}
+
+.sgb_item_filtered_out {
+  display: none;
+}
+
+button.active {
+  background-color: #FF8888;
+}

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meet the Phages</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/pdbe-molstar@3.3.0/build/pdbe-molstar.css" />
+    <!-- For Light Theme include this CSS file instead of the above -->
+    <!-- <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/pdbe-molstar@3.3.0/build/pdbe-molstar-light.css" /> -->
+
+    <!-- JS -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/pdbe-molstar@3.3.0/build/pdbe-molstar-plugin.js"></script>
+    
+    
+    <!-- CGview and D3 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cgview/dist/cgview.css">
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cgview/dist/cgview.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/cgparse/dist/cgparse.min.js"></script>
+    
+    <!-- Custom styles -->
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="./assets/Phage-Foundry-Logo-simple_edit.png" type="image/x-icon">
+
+</head>
+<body>
+    <a href="./" id="home_logo">
+        <img src="assets/home_logo_light.svg" alt="Home" style="width: 100%; height: 100%;">
+    </a>
+
+    <div id="acknowledgment_box">
+        <p>This work was made possible through funding from:</p>
+        <div class="funding_logos">
+        <img src="assets/NSF_Official_logo_Med_Res_600ppi.png" alt="NSF Logo">
+        <img src="assets/doe_dark.png" alt="DOE Logo">
+        </div>
+    </div>
+
+    <div class="container">
+        <h1 class="main-title">Get to know the <i>E. coli</i> Phages</h1>
+
+        
+        
+        <div class="main-content">
+            <div id="network-section" class="section">
+                <div id="network-container"></div>
+                <div id="tooltip" class="tooltip"></div>
+                <div id="barseq-link-section">
+                    <button id="barseq-link-btn" onclick="handleBarseqLinkClick()">See RB-TnSeq data for selected phages</button>
+                </div>
+            </div>
+            
+            <div id="table-section" class="section">
+                <div id="table-container"></div>
+            </div>
+        </div>
+        
+        <div id="about-section" class="section">
+            <h2>About</h2>
+            <p>
+                The table and network above depict the 260 phages described in Moriniere et al. 2026. The network is a force directed graph based on vcontact connections between phage, and the table shows basic metadata and experimental results for each phage.
+            </p> 
+            <ul class="arrow-list">
+                <li>Click on any phage in the network or table to explore detailed information about its genome structure, receptors, and characteristics</li>
+                <li>Use the brush tool in the network graph to select and filter phages in the table, or click the magnifying glass to search or filter in the table</li>
+                <li>Hover over table rows to highlight corresponding nodes in the network</li>
+                <li>Follow the link below the network or in the phage popups to explore the RB-TnSeq data in a genome browsers</li>
+            </ul>
+            <h4>Links directly to genome browsers:</h4>
+            <ul class="arrow-list">
+                <li><a href="./barseq_browser/BW25113/">BW25113 RB-TnSeq</a></li>
+                <li><a href="./barseq_browser/BL21/">BL21 RB-TnSeq</a></li>
+                <li><a href="./barseq_browser/BW25113/dubseq.html">BW25113 DubTnSeq</a></li>
+            </ul>
+            <p>
+                <a href="https::/miloswebsite.com">Milo Johnson</a> created this browser, and the code is available at XXXX
+            </p>
+        </div>
+    </div>
+    
+    <!-- Popup Modal -->
+    <div id="popup-overlay" class="popup-overlay">
+        <div id="popup-content" class="popup-content">
+            <button id="popup-close" class="popup-close">&times;</button>
+            
+            <div id="custom-info-div"></div>
+            <div id="info-div"></div>
+            <h2>Genome</h2>
+            <div id="genome-viewer"></div>
+            <h2 id="structure_title_text">Alpha Fold Model of Receptor Binding</h2>
+            <div id="structure-div"></div>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
