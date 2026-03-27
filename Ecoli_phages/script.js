@@ -3,6 +3,9 @@
 // ============================================
 let phageData = [];
 let eopData = [];
+let BL21GeneData = [];
+let KeioGeneData = [];
+let dubseqPhages = [];
 let networkData = { nodes: [], links: [] };
 let selectedPhages = new Set();
 let highlightedPhage = null;
@@ -10,6 +13,9 @@ let currentPhage = null;
 let familyColors = {};
 let taxonomyColorScales = {};
 let tableFilters = []; // Array of {column, values} objects
+let tableSort = { column: null, direction: 0 }; // 0=default, 1=asc, -1=desc
+let tableSearchText = '';
+let openFilterDropdownEl = null;
 
 // colors and shapes
 porin_colors = {
@@ -45,6 +51,12 @@ async function loadData() {
         // Load EOP data
         eopData = await d3.csv('./data/KEIO_EOP_reformatted.csv');
 
+        BL21GeneData = await d3.tsv('./barseq_browser/data/BL21/genes_w_ecocyc.tab')
+        KeioGeneData = await d3.tsv('./barseq_browser/data/Keio/genes_w_ecocyc.tab')
+
+        const dubseq_metadata = await d3.csv('./barseq_browser/data/Dubseq_sets.csv')
+        dubseqPhages = new Set(dubseq_metadata.map((row) => row['phage']));
+
         // Load network data
         const ntwResponse = await fetch('./data/c1_new.ntw');
         const ntwText = await ntwResponse.text();
@@ -60,15 +72,17 @@ async function loadData() {
         phageData.sort((a, b) => {
             const classCompare = (b.Class || '').localeCompare(a.Class || '');
             if (classCompare !== 0) return classCompare;
-            
+
             const familyCompare = (b.Family || '').localeCompare(a.Family || '');
             if (familyCompare !== 0) return familyCompare;
-            
+
             const subfamilyCompare = (b.Subfamily || '').localeCompare(a.Subfamily || '');
             if (subfamilyCompare !== 0) return subfamilyCompare;
-            
+
             return (b.Genus || '').localeCompare(a.Genus || '');
         });
+        // Tag each row with its canonical taxonomy order for sort-reset
+        phageData.forEach((d, i) => { d._origIndex = i; });
         
         // Create network structure
         networkData.nodes = phageData.map(d => ({
@@ -409,7 +423,25 @@ function clearNodeHighlight() {
 function initializeTable() {
     const container = d3.select('#table-container');
     container.selectAll('*').remove();
-    
+
+    // Search box above table (create once, persists across re-init)
+    if (d3.select('#table-search-container').empty()) {
+        const searchContainer = d3.select('#table-section')
+            .insert('div', '#table-container')
+            .attr('id', 'table-search-container')
+            .attr('class', 'table-search-container');
+
+        searchContainer.append('input')
+            .attr('type', 'text')
+            .attr('class', 'table-search-input')
+            .attr('placeholder', 'Search phages by name\u2026')
+            .property('value', tableSearchText)
+            .on('input', function() {
+                tableSearchText = this.value;
+                updateTableFilter();
+            });
+    }
+
     // Define columns in specific order
     const displayColumns = [
         'Phage',
@@ -438,78 +470,67 @@ function initializeTable() {
     const headerRow1 = thead.append('tr');
     const headerRow2 = thead.append('tr');
     
-    // Filter button (spans 2 rows)
-    const filterCell = headerRow1.append('th')
-        .attr('rowspan', 2)
-        .style('cursor', 'pointer')
-        .style('padding', '8px')
-        .style('text-align', 'center')
-        .on('click', () => showFilterPopup());
-    
-    filterCell.append('span')
-        .html('&#128269;') // magnifying glass emoji
-        .style('font-size', '20px')
-        .attr('title', 'Filter table');
-    
-    // Nickname header (spans 2 rows)
+    // Helper: append a sortable th to a row
+    function sortableTh(row, label, col, extraAttrs = {}) {
+        const th = row.append('th').style('cursor', 'pointer').style('user-select', 'none');
+        Object.entries(extraAttrs).forEach(([k, v]) => th.attr(k, v));
+        th.append('span').text(label);
+        th.append('span').attr('class', 'sort-indicator').attr('data-sort-col', col);
+
+        // Filter icon
+        th.append('span')
+            .attr('class', 'col-filter-btn')
+            .attr('data-filter-col', col)
+            .attr('title', 'Filter ' + label)
+            .html('<svg viewBox="0 0 16 16" width="10" height="10" fill="currentColor"><path d="M1.5 1.5h13L9 8v4.5l-2 1.5V8z"/></svg>')
+            .on('click', function(event) {
+                event.stopPropagation();
+                openColumnFilter(col, this);
+            });
+
+        // Clear filter button (hidden by default)
+        th.append('span')
+            .attr('class', 'col-filter-clear')
+            .attr('data-filter-col', col)
+            .style('display', 'none')
+            .text('\u00d7')
+            .on('click', function(event) {
+                event.stopPropagation();
+                clearColumnFilter(col);
+            });
+
+        th.on('click', () => handleColumnSort(col));
+        return th;
+    }
+
+    // Filter placeholder cell (spans 2 rows) — no longer has magnifying glass
     headerRow1.append('th')
-        .attr('rowspan', 2)
-        .text('Nickname');
-    
-    // Family header (spans 2 rows)
-    headerRow1.append('th')
-        .attr('rowspan', 2)
-        .text('Family');
-    
-    // Subfamily header (spans 2 rows)
-    headerRow1.append('th')
-        .attr('rowspan', 2)
-        .text('Subfamily');
-    
-    // Genus header (spans 2 rows)
-    headerRow1.append('th')
-        .attr('rowspan', 2)
-        .text('Genus');
-    
-    // Lifestyle header (spans 2 rows)
-    headerRow1.append('th')
-        .attr('rowspan', 2)
-        .text('Lifestyle');
-    
-    // Morphotype header (spans 2 rows)
-    headerRow1.append('th')
-        .attr('rowspan', 2)
-        .text('Morphotype');
-    
-    // Susceptibility header (spans 2 columns)
-    headerRow1.append('th')
-        .attr('colspan', 2)
-        .style('text-align', 'center')
-        .text('Susceptibility');
-    
-    // BW25113 and BL21 sub-headers for susceptibility
-    headerRow2.append('th').text('BW25113');
-    headerRow2.append('th').text('BL21');
-    
-    // Receptor header (spans 2 columns)
-    headerRow1.append('th')
-        .attr('colspan', 2)
-        .style('text-align', 'center')
-        .text('Receptor');
-    
-    // BW25113 and BL21 sub-headers for receptor
-    headerRow2.append('th').text('BW25113');
-    headerRow2.append('th').text('BL21');
-    
-    // LPS header (spans 2 rows)
-    headerRow1.append('th')
-        .attr('rowspan', 2)
-        .text('LPS');
-    
-    // AlphaFold host header (spans 2 rows)
-    headerRow1.append('th')
-        .attr('rowspan', 2)
-        .text('AF3 model');
+        .attr('class', 'sticky-col-1')
+        .attr('rowspan', 2);
+
+    // Nickname (spans 2 rows)
+    sortableTh(headerRow1, 'Nickname', 'Phage', { class: 'sticky-col-2', rowspan: 2 });
+
+    // Taxonomy (each spans 2 rows)
+    sortableTh(headerRow1, 'Family',    'Family',    { rowspan: 2 });
+    sortableTh(headerRow1, 'Subfamily', 'Subfamily', { rowspan: 2 });
+    sortableTh(headerRow1, 'Genus',     'Genus',     { rowspan: 2 });
+    sortableTh(headerRow1, 'Lifestyle', 'Lifestyle', { rowspan: 2 });
+    sortableTh(headerRow1, 'Morphotype','Morphotype',{ rowspan: 2 });
+
+    // Susceptibility group header (not sortable, spans 2 columns)
+    headerRow1.append('th').attr('colspan', 2).style('text-align', 'center').text('Susceptibility');
+    sortableTh(headerRow2, 'BW25113', 'BW25113 susceptibility');
+    sortableTh(headerRow2, 'BL21',    'BL21 susceptibility');
+
+    // Receptor group header (not sortable, spans 2 columns)
+    headerRow1.append('th').attr('colspan', 2).style('text-align', 'center').text('Receptor');
+    sortableTh(headerRow2, 'BW25113', 'BW25113 receptor');
+    sortableTh(headerRow2, 'BL21',    'BL21 receptor');
+
+    // Remaining single-column headers (span 2 rows)
+    sortableTh(headerRow1, 'LPS',       'BW25113 LPS sugar', { rowspan: 2 });
+    sortableTh(headerRow1, 'AF3 model', 'AF3 model',         { rowspan: 2 });
     
     // Create table rows
     const rows = tbody.selectAll('tr')
@@ -529,8 +550,8 @@ function initializeTable() {
     rows.each(function(d, i) {
         const row = d3.select(this);
         const barsDiv = row.append('td')
-            .style('position', 'relative')
-            .style('width', '20px')
+            .attr('class', 'sticky-col-1')
+            .style('width', '32px')
             .style('padding', '0');
         
         const bars = barsDiv.append('div')
@@ -543,6 +564,11 @@ function initializeTable() {
                     .attr('class', 'taxonomy-bar')
                     .attr('title', `${col}: ${d[col]}`)
                     .style('background-color', taxonomyColorScales[col](d[col]));
+            } else {
+                bars.append('div')
+                    .attr('class', 'taxonomy-bar')
+                    .attr('title', `${col}: undefined`)
+                    .style('background-color', '#999');                
             }
         });
     });
@@ -553,7 +579,8 @@ function initializeTable() {
         
         displayColumns.forEach(col => {
             const cell = row.append('td');
-            
+            if (col === 'Phage') cell.attr('class', 'sticky-col-2');
+
             if (col === 'Reference' && d[col]) {
                 cell.append('a')
                     .attr('href', `https://doi.org/${d[col]}`)
@@ -574,12 +601,201 @@ function initializeTable() {
     
     // Store for filtering
     window.tableRows = rows;
+
+    // Restore filter indicator state after rebuild
+    updateFilterIndicators();
+    updateTableFilter();
+}
+
+function handleColumnSort(column) {
+    if (tableSort.column === column) {
+        if (tableSort.direction === 1)       { tableSort.direction = -1; }
+        else if (tableSort.direction === -1) { tableSort.direction = 0; tableSort.column = null; }
+        else                                 { tableSort.direction = 1; }
+    } else {
+        tableSort.column = column;
+        tableSort.direction = 1;
+    }
+    applyTableSort();
+}
+
+function applyTableSort() {
+    // Update sort indicator arrows
+    d3.selectAll('.sort-indicator').text('');
+    if (tableSort.column) {
+        d3.selectAll(`.sort-indicator[data-sort-col="${tableSort.column}"]`)
+            .text(tableSort.direction === 1 ? ' ▲' : ' ▼');
+    }
+
+    // Re-order <tr> elements in place (D3 .sort reorders DOM nodes without re-rendering)
+    d3.select('.phage-table tbody').selectAll('tr').sort((a, b) => {
+        if (!tableSort.column || tableSort.direction === 0) {
+            return a._origIndex - b._origIndex;
+        }
+        const va = a[tableSort.column] || '';
+        const vb = b[tableSort.column] || '';
+        // Always push blanks to the end
+        if (!va && vb)  return 1;
+        if (va  && !vb) return -1;
+        if (!va && !vb) return 0;
+        const cmp = va.localeCompare(vb, undefined, { numeric: true, sensitivity: 'base' });
+        return tableSort.direction === 1 ? cmp : -cmp;
+    });
+}
+
+// ============================================
+// COLUMN FILTER DROPDOWN
+// ============================================
+function openColumnFilter(column, btnElement) {
+    closeColumnFilter();
+
+    const rect = btnElement.getBoundingClientRect();
+    const uniqueValues = [...new Set(phageData.map(d => d[column]).filter(v => v))].sort(
+        (a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+    );
+
+    const existingFilter = tableFilters.find(f => f.column === column);
+    const checkedValues = existingFilter ? new Set(existingFilter.values) : new Set(uniqueValues);
+
+    const dropdown = d3.select('body').append('div')
+        .attr('class', 'col-filter-dropdown');
+
+    // Position: keep on screen
+    const left = Math.min(rect.left, window.innerWidth - 270);
+    const top = rect.bottom + 4;
+    dropdown.style('left', left + 'px').style('top', top + 'px');
+
+    openFilterDropdownEl = dropdown.node();
+
+    // Search input
+    const searchInput = dropdown.append('input')
+        .attr('type', 'text')
+        .attr('class', 'filter-search')
+        .attr('placeholder', 'Search\u2026');
+
+    // Select all / none toggles
+    const toggleRow = dropdown.append('div').attr('class', 'filter-toggles');
+    toggleRow.append('a').text('All').on('click', function(event) {
+        event.preventDefault();
+        uniqueValues.forEach(v => checkedValues.add(v));
+        renderValues(searchInput.property('value'));
+    });
+    toggleRow.append('a').text('None').on('click', function(event) {
+        event.preventDefault();
+        checkedValues.clear();
+        renderValues(searchInput.property('value'));
+    });
+
+    // Values container
+    const valuesDiv = dropdown.append('div').attr('class', 'filter-values');
+
+    function renderValues(filterText) {
+        valuesDiv.selectAll('*').remove();
+        const filtered = filterText
+            ? uniqueValues.filter(v => v.toLowerCase().includes(filterText.toLowerCase()))
+            : uniqueValues;
+
+        filtered.forEach(value => {
+            const label = valuesDiv.append('label');
+            label.append('input')
+                .attr('type', 'checkbox')
+                .property('checked', checkedValues.has(value))
+                .on('change', function() {
+                    if (this.checked) checkedValues.add(value);
+                    else checkedValues.delete(value);
+                });
+            label.append('span').text(value);
+        });
+    }
+
+    renderValues('');
+    searchInput.on('input', function() { renderValues(this.value); });
+
+    // Action buttons
+    const actions = dropdown.append('div').attr('class', 'filter-actions');
+
+    if (existingFilter) {
+        actions.append('button')
+            .attr('class', 'filter-btn-clear')
+            .text('Clear')
+            .on('click', () => { clearColumnFilter(column); closeColumnFilter(); });
+    }
+
+    actions.append('button')
+        .attr('class', 'filter-btn-apply')
+        .text('Apply')
+        .on('click', () => {
+            if (checkedValues.size === 0 || checkedValues.size === uniqueValues.length) {
+                // All or none selected = remove filter
+                clearColumnFilter(column);
+            } else {
+                setColumnFilter(column, checkedValues);
+            }
+            closeColumnFilter();
+        });
+
+    // Close on outside click (added on next tick so this click doesn't trigger it)
+    setTimeout(() => {
+        document.addEventListener('click', handleFilterOutsideClick);
+    }, 0);
+}
+
+function handleFilterOutsideClick(event) {
+    if (openFilterDropdownEl && !openFilterDropdownEl.contains(event.target) && !event.target.closest('.col-filter-btn')) {
+        closeColumnFilter();
+    }
+}
+
+function closeColumnFilter() {
+    if (openFilterDropdownEl) {
+        openFilterDropdownEl.remove();
+        openFilterDropdownEl = null;
+    }
+    document.removeEventListener('click', handleFilterOutsideClick);
+}
+
+function setColumnFilter(column, values) {
+    const idx = tableFilters.findIndex(f => f.column === column);
+    if (idx >= 0) {
+        tableFilters[idx].values = new Set(values);
+    } else {
+        tableFilters.push({ column, values: new Set(values) });
+    }
+    updateFilterIndicators();
+    updateTableFilter();
+}
+
+function clearColumnFilter(column) {
+    tableFilters = tableFilters.filter(f => f.column !== column);
+    updateFilterIndicators();
+    updateTableFilter();
+}
+
+function updateFilterIndicators() {
+    const activeCols = new Set(tableFilters.map(f => f.column));
+
+    d3.selectAll('.col-filter-btn').each(function() {
+        const col = d3.select(this).attr('data-filter-col');
+        d3.select(this).classed('active', activeCols.has(col));
+    });
+
+    d3.selectAll('.col-filter-clear').each(function() {
+        const col = d3.select(this).attr('data-filter-col');
+        d3.select(this).style('display', activeCols.has(col) ? 'inline-flex' : 'none');
+    });
 }
 
 function updateTableFilter() {
     if (!window.tableRows) return;
-    
+
+    const searchLower = tableSearchText.toLowerCase();
+
     window.tableRows.classed('filtered_out_row', d => {
+        // Check search text
+        if (searchLower && !d.Phage.toLowerCase().includes(searchLower)) {
+            return true;
+        }
+
         // Check network filter
         if (selectedPhages.size > 0 && !selectedPhages.has(d.Phage)) {
             return true;
@@ -873,7 +1089,11 @@ function showPopup(phageData) {
 
     const overlay = document.getElementById('popup-overlay');
     overlay.classList.add('active');
-    
+
+    // Clear dynamic content so loaders re-run for the new phage
+    d3.select('#genome-viewer').selectAll('*').remove();
+    document.getElementById('popup-content').scrollTop = 0;
+
     populateCustomInfo(phageData);
     // populateInfo(phageData);  // kept for future use
     loadGenome(phageData);
@@ -965,7 +1185,7 @@ function populateCustomInfo(data) {
         .style('display', 'flex')
         .style('align-items', 'center')
         .style('border-radius', '4px')
-        .style('margin-bottom', '20px')
+        .style('margin-bottom', '5px')
         .style('transition', 'color 0.2s')
         .html(`<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
@@ -1069,17 +1289,110 @@ function populateCustomInfo(data) {
     lpsRow.append('td').text(data['BW25113 LPS sugar'] || 'N/A');
     lpsRow.append('td').text('N/A');
 
+    // --- Browser link buttons ---
+    const btnStyle = {
+        background: '#3a3a3a', color: 'var(--text-primary)',
+        border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'pointer'
+    };
+    const disabledStyle = {
+        background: '#2a2a2a', color: 'var(--text-muted)',
+        border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'default',
+        opacity: '0.5'
+    };
+
+    function makeBarseqUrl(base, phage, receptor, geneData) {
+        const url = new URL(base, window.location.href);
+        url.searchParams.set('phages', phage);
+        if (receptor && receptor !== 'LPS' && receptor !== 'N/A' && receptor !== 'NGR'
+            && receptor !== 'Resistant' && receptor !== 'Unknown' && receptor !== 'Not assayed') {
+            const gene = receptor.split(';')[0].toLowerCase();
+            const match = geneData.find(g => g.name.toLowerCase() === gene);
+            if (match) {
+                const begin = +match.begin, end = +match.end;
+                const len = end - begin;
+                url.searchParams.set('contig', match.scaffoldId);
+                url.searchParams.set('start', Math.max(0, begin - len));
+                url.searchParams.set('end', end + len);
+            }
+        }
+        return url.toString();
+    }
+
+    // BW25113 RB-TnSeq (full-width)
     middleDiv.append('button')
         .style('margin-top', '10px')
-        .style('background', '#3a3a3a')
-        .style('color', 'var(--text-primary)')
-        .style('border', '1px solid var(--border-color)')
+        .style('width', '100%')
+        .style('background', btnStyle.background)
+        .style('color', btnStyle.color)
+        .style('border', btnStyle.border)
         .style('padding', '6px 14px')
-        .style('border-radius', '4px')
-        .style('cursor', 'pointer')
+        .style('border-radius', btnStyle.borderRadius)
+        .style('cursor', btnStyle.cursor)
         .style('font-size', '13px')
-        .text('See RB-TnSeq data for this phage')
-        .on('click', () => openBarseqBrowser([data.Phage]));
+        .text('Browse BW25113 RB-TnSeq data')
+        .on('click', () => {
+            window.open(makeBarseqUrl('barseq_browser/BW25113/index.html', data.Phage,
+                data['BW25113 receptor'], KeioGeneData), '_blank');
+        });
+
+    // Second row: DubSeq + BL21 RB-TnSeq (half-width each)
+    const btnRow = middleDiv.append('div')
+        .style('display', 'flex')
+        .style('gap', '6px')
+        .style('margin-top', '6px');
+
+    const hasDubseq = dubseqPhages.has(data.Phage);
+    const bl21Receptor = data['BL21 receptor'] || '';
+    const hasBL21 = bl21Receptor && bl21Receptor !== 'Not assayed';
+
+    const dubBtn = btnRow.append('button')
+        .style('flex', '1')
+        .style('padding', '5px 6px')
+        .style('font-size', '11px')
+        .style('border-radius', '4px');
+    if (hasDubseq) {
+        dubBtn.style('background', btnStyle.background)
+            .style('color', btnStyle.color)
+            .style('border', btnStyle.border)
+            .style('cursor', btnStyle.cursor)
+            .text('BW25113 DubSeq')
+            .on('click', () => {
+                const url = new URL('barseq_browser/BW25113/dubseq.html', window.location.href);
+                url.searchParams.set('phages', data.Phage);
+                window.open(url.toString(), '_blank');
+            });
+    } else {
+        dubBtn.style('background', disabledStyle.background)
+            .style('color', disabledStyle.color)
+            .style('border', disabledStyle.border)
+            .style('cursor', disabledStyle.cursor)
+            .style('opacity', disabledStyle.opacity)
+            .text('No DubSeq data');
+    }
+
+    const bl21Btn = btnRow.append('button')
+        .style('flex', '1')
+        .style('padding', '5px 6px')
+        .style('font-size', '11px')
+        .style('border-radius', '4px');
+    if (hasBL21) {
+        bl21Btn.style('background', btnStyle.background)
+            .style('color', btnStyle.color)
+            .style('border', btnStyle.border)
+            .style('cursor', btnStyle.cursor)
+            .text('BL21 RB-TnSeq')
+            .on('click', () => {
+                window.open(makeBarseqUrl('barseq_browser/BL21/index.html', data.Phage,
+                    bl21Receptor, BL21GeneData), '_blank');
+            });
+    } else {
+        bl21Btn.style('background', disabledStyle.background)
+            .style('color', disabledStyle.color)
+            .style('border', disabledStyle.border)
+            .style('cursor', disabledStyle.cursor)
+            .style('opacity', disabledStyle.opacity)
+            .text('No BL21 RB-TnSeq');
+    }
 
     // === RIGHT: EOP data ===
     const rightDiv = twoColDiv.append('div')
@@ -1743,11 +2056,29 @@ function handleBarseqLinkClick() {
 }
 
 // ============================================
+// POPUP NAVIGATION
+// ============================================
+function getOrderedVisiblePhages() {
+    const rows = d3.select('.phage-table tbody').selectAll('tr')
+        .filter(function() { return !d3.select(this).classed('filtered_out_row'); });
+    return rows.data();
+}
+
+function navigatePopup(direction) {
+    if (!currentPhage) return;
+    const phages = getOrderedVisiblePhages();
+    if (phages.length === 0) return;
+    const idx = phages.findIndex(d => d.Phage === currentPhage.Phage);
+    const newIdx = idx < 0 ? 0 : (idx + direction + phages.length) % phages.length;
+    showPopup(phages[newIdx]);
+}
+
+// ============================================
 // EVENT LISTENERS
 // ============================================
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
-    
+
     // Close popup
     document.getElementById('popup-close').addEventListener('click', hidePopup);
     document.getElementById('popup-overlay').addEventListener('click', (e) => {
@@ -1755,7 +2086,34 @@ document.addEventListener('DOMContentLoaded', () => {
             hidePopup();
         }
     });
-    
+
+    // Popup navigation buttons
+    document.getElementById('popup-nav-left').addEventListener('click', (e) => {
+        e.stopPropagation();
+        navigatePopup(-1);
+    });
+    document.getElementById('popup-nav-right').addEventListener('click', (e) => {
+        e.stopPropagation();
+        navigatePopup(1);
+    });
+
+    // Keyboard shortcuts for popup
+    document.addEventListener('keydown', (e) => {
+        const overlay = document.getElementById('popup-overlay');
+        if (!overlay.classList.contains('active')) return;
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+        if (e.key === 'Escape') {
+            hidePopup();
+        } else if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            navigatePopup(-1);
+        } else if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            navigatePopup(1);
+        }
+    });
+
     // Handle window resize
     let resizeTimeout;
     window.addEventListener('resize', () => {

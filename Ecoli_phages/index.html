@@ -26,20 +26,21 @@
 
 </head>
 <body>
-    <a href="./" id="home_logo">
-        <img src="assets/home_logo_light.svg" alt="Home" style="width: 100%; height: 100%;">
-    </a>
-
-    <div id="acknowledgment_box">
-        <p>This work was made possible through funding from:</p>
-        <div class="funding_logos">
-        <img src="assets/NSF_Official_logo_Med_Res_600ppi.png" alt="NSF Logo">
-        <img src="assets/doe_dark.png" alt="DOE Logo">
+    <header class="site-header">
+        <a href="./" id="home_logo">
+            <img src="assets/home_logo_light.svg" alt="Home">
+        </a>
+        <h1 class="main-title">Get to know the <i>E. coli</i> Phages</h1>
+        <div id="acknowledgment_box">
+            <p>This work was made possible through funding from:</p>
+            <div class="funding_logos">
+                <img src="assets/NSF_Official_logo_Med_Res_600ppi.png" alt="NSF Logo">
+                <img src="assets/doe_dark.png" alt="DOE Logo">
+            </div>
         </div>
-    </div>
+    </header>
 
     <div class="container">
-        <h1 class="main-title">Get to know the <i>E. coli</i> Phages</h1>
 
         
         
@@ -82,16 +83,20 @@
     
     <!-- Popup Modal -->
     <div id="popup-overlay" class="popup-overlay">
+        <button id="popup-nav-left" class="popup-nav popup-nav-left" title="Previous phage (&#8592;)">&#8249;</button>
         <div id="popup-content" class="popup-content">
             <button id="popup-close" class="popup-close">&times;</button>
-            
+
             <div id="custom-info-div"></div>
             <div id="info-div"></div>
             <h2>Genome</h2>
             <div id="genome-viewer"></div>
             <h2 id="structure_title_text">Alpha Fold Model of Receptor Binding</h2>
             <div id="structure-div"></div>
+
+            <div class="popup-footer-hint">&larr; &rarr; to navigate &middot; Esc to close</div>
         </div>
+        <button id="popup-nav-right" class="popup-nav popup-nav-right" title="Next phage (&#8594;)">&#8250;</button>
     </div>
     
     <script src="script.js"></script>
