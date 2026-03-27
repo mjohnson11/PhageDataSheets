@@ -378,15 +378,15 @@ function sidebar_morgan_info(sgb, gene_object) {
       }
     }
     sgb.sidebar_div.append('p').append('a')
-      .attr('href', `https://fitprivate.genomics.lbl.gov/cgi-bin/singleFit.cgi?orgId=${sgb.orgId}&locusId=${locusId}&showAll=1`)
+      .attr('href', `https://fit.genomics.lbl.gov/cgi-bin/singleFit.cgi?orgId=${sgb.orgId}&locusId=${locusId}&showAll=1`)
       .attr('target', '_blank')
       .html('Fitness Data')
     sgb.sidebar_div.append('p').append('a')
-      .attr('href', `https://fitprivate.genomics.lbl.gov/cgi-bin/cofit.cgi?orgId=${sgb.orgId}&locusId=${locusId}`)
+      .attr('href', `https://fit.genomics.lbl.gov/cgi-bin/cofit.cgi?orgId=${sgb.orgId}&locusId=${locusId}`)
       .attr('target', '_blank')
       .html('Cofitness')
     sgb.sidebar_div.append('p').append('a')
-      .attr('href', `https://fitprivate.genomics.lbl.gov/cgi-bin/domains.cgi?orgId=${sgb.orgId}&locusId=${locusId}`)
+      .attr('href', `https://fit.genomics.lbl.gov/cgi-bin/domains.cgi?orgId=${sgb.orgId}&locusId=${locusId}`)
       .attr('target', '_blank')
       .html('Protein Info')
   }
