@@ -200,7 +200,9 @@ function initializeNetwork() {
         .attr('viewBox', `0 0 ${CANON_W} ${CANON_H}`)
         .attr('width', '100%')
         .attr('height', '100%')
-        .attr('preserveAspectRatio', 'xMidYMid meet');
+        .attr('preserveAspectRatio', 'xMidYMid meet')
+        .attr('role', 'img')
+        .attr('aria-label', `Network graph of ${networkData.nodes.length} phages colored by family, showing sequence similarity connections`);
     
     const background_g = svg.append('g')
         .attr('transform', `translate(${networkMargin.left},${networkMargin.top})`);
@@ -431,8 +433,14 @@ function initializeTable() {
             .attr('id', 'table-search-container')
             .attr('class', 'table-search-container');
 
+        searchContainer.append('label')
+            .attr('for', 'table-search-input')
+            .attr('class', 'sr-only')
+            .text('Search phages by name');
+
         searchContainer.append('input')
             .attr('type', 'text')
+            .attr('id', 'table-search-input')
             .attr('class', 'table-search-input')
             .attr('placeholder', 'Search phages by name\u2026')
             .property('value', tableSearchText)
@@ -461,7 +469,8 @@ function initializeTable() {
     
     
     const table = container.append('table')
-        .attr('class', 'phage-table');
+        .attr('class', 'phage-table')
+        .attr('aria-label', 'Phage data');
     
     const thead = table.append('thead');
     const tbody = table.append('tbody');
@@ -472,26 +481,29 @@ function initializeTable() {
     
     // Helper: append a sortable th to a row
     function sortableTh(row, label, col, extraAttrs = {}) {
-        const th = row.append('th').style('cursor', 'pointer').style('user-select', 'none');
+        const th = row.append('th').style('cursor', 'pointer').style('user-select', 'none')
+            .attr('aria-sort', 'none');
         Object.entries(extraAttrs).forEach(([k, v]) => th.attr(k, v));
         th.append('span').text(label);
         th.append('span').attr('class', 'sort-indicator').attr('data-sort-col', col);
 
         // Filter icon
-        th.append('span')
+        th.append('button')
             .attr('class', 'col-filter-btn')
             .attr('data-filter-col', col)
-            .attr('title', 'Filter ' + label)
-            .html('<svg viewBox="0 0 16 16" width="10" height="10" fill="currentColor"><path d="M1.5 1.5h13L9 8v4.5l-2 1.5V8z"/></svg>')
+            .attr('aria-label', 'Filter ' + label)
+            .attr('aria-expanded', 'false')
+            .html('<svg viewBox="0 0 16 16" width="10" height="10" fill="currentColor" aria-hidden="true"><path d="M1.5 1.5h13L9 8v4.5l-2 1.5V8z"/></svg>')
             .on('click', function(event) {
                 event.stopPropagation();
                 openColumnFilter(col, this);
             });
 
         // Clear filter button (hidden by default)
-        th.append('span')
+        th.append('button')
             .attr('class', 'col-filter-clear')
             .attr('data-filter-col', col)
+            .attr('aria-label', 'Clear ' + label + ' filter')
             .style('display', 'none')
             .text('\u00d7')
             .on('click', function(event) {
@@ -536,6 +548,7 @@ function initializeTable() {
     const rows = tbody.selectAll('tr')
         .data(phageData)
         .join('tr')
+        .attr('tabindex', '0')
         .on('mouseover', function(event, d) {
             highlightNodeByPhage(d.Phage);
             d3.select(this).classed('highlighted', true);
@@ -544,13 +557,20 @@ function initializeTable() {
             clearNodeHighlight();
             d3.select(this).classed('highlighted', false);
         })
-        .on('click', (event, d) => showPopup(d));
+        .on('click', (event, d) => showPopup(d))
+        .on('keydown', function(event, d) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                showPopup(d);
+            }
+        });
     
     // Add taxonomy bars
     rows.each(function(d, i) {
         const row = d3.select(this);
         const barsDiv = row.append('td')
             .attr('class', 'sticky-col-1')
+            .attr('aria-hidden', 'true')
             .style('width', '32px')
             .style('padding', '0');
         
@@ -620,11 +640,16 @@ function handleColumnSort(column) {
 }
 
 function applyTableSort() {
-    // Update sort indicator arrows
+    // Update sort indicator arrows and aria-sort
     d3.selectAll('.sort-indicator').text('');
+    d3.selectAll('.phage-table th[aria-sort]').attr('aria-sort', 'none');
     if (tableSort.column) {
         d3.selectAll(`.sort-indicator[data-sort-col="${tableSort.column}"]`)
             .text(tableSort.direction === 1 ? ' ▲' : ' ▼');
+        d3.selectAll(`.sort-indicator[data-sort-col="${tableSort.column}"]`).each(function() {
+            d3.select(this.parentNode).attr('aria-sort',
+                tableSort.direction === 1 ? 'ascending' : 'descending');
+        });
     }
 
     // Re-order <tr> elements in place (D3 .sort reorders DOM nodes without re-rendering)
@@ -646,8 +671,11 @@ function applyTableSort() {
 // ============================================
 // COLUMN FILTER DROPDOWN
 // ============================================
+let filterTriggerEl = null; // element that opened the filter dropdown
+
 function openColumnFilter(column, btnElement) {
     closeColumnFilter();
+    filterTriggerEl = btnElement;
 
     const rect = btnElement.getBoundingClientRect();
     const uniqueValues = [...new Set(phageData.map(d => d[column]).filter(v => v))].sort(
@@ -657,8 +685,13 @@ function openColumnFilter(column, btnElement) {
     const existingFilter = tableFilters.find(f => f.column === column);
     const checkedValues = existingFilter ? new Set(existingFilter.values) : new Set(uniqueValues);
 
+    // Mark the trigger button as expanded
+    d3.select(btnElement).attr('aria-expanded', 'true');
+
     const dropdown = d3.select('body').append('div')
-        .attr('class', 'col-filter-dropdown');
+        .attr('class', 'col-filter-dropdown')
+        .attr('role', 'dialog')
+        .attr('aria-label', 'Filter ' + column);
 
     // Position: keep on screen
     const left = Math.min(rect.left, window.innerWidth - 270);
@@ -673,15 +706,16 @@ function openColumnFilter(column, btnElement) {
         .attr('class', 'filter-search')
         .attr('placeholder', 'Search\u2026');
 
+    // Focus the search input
+    setTimeout(() => searchInput.node().focus(), 0);
+
     // Select all / none toggles
     const toggleRow = dropdown.append('div').attr('class', 'filter-toggles');
-    toggleRow.append('a').text('All').on('click', function(event) {
-        event.preventDefault();
+    toggleRow.append('button').text('All').on('click', function() {
         uniqueValues.forEach(v => checkedValues.add(v));
         renderValues(searchInput.property('value'));
     });
-    toggleRow.append('a').text('None').on('click', function(event) {
-        event.preventDefault();
+    toggleRow.append('button').text('None').on('click', function() {
         checkedValues.clear();
         renderValues(searchInput.property('value'));
     });
@@ -751,6 +785,12 @@ function closeColumnFilter() {
         openFilterDropdownEl.remove();
         openFilterDropdownEl = null;
     }
+    // Reset aria-expanded and restore focus to trigger
+    if (filterTriggerEl) {
+        d3.select(filterTriggerEl).attr('aria-expanded', 'false');
+        filterTriggerEl.focus();
+        filterTriggerEl = null;
+    }
     document.removeEventListener('click', handleFilterOutsideClick);
 }
 
@@ -818,6 +858,16 @@ function updateTableFilter() {
     if (barseqBtn) barseqBtn.textContent = hasSubset
         ? 'See RB-TnSeq data for selected phages'
         : 'See RB-TnSeq data for a subset of these phages';
+
+    // Announce filter results to screen readers
+    const statusEl = document.getElementById('a11y-status');
+    if (statusEl && hasSubset) {
+        const visibleCount = d3.selectAll('.phage-table tbody tr')
+            .filter(function() { return !d3.select(this).classed('filtered_out_row'); }).size();
+        statusEl.textContent = `Showing ${visibleCount} of ${phageData.length} phages`;
+    } else if (statusEl) {
+        statusEl.textContent = '';
+    }
 
     // Dim network nodes that are filtered out by table filters
     if (window.networkElements) {
@@ -1087,7 +1137,14 @@ function showFilterPopup() {
 // ============================================
 // POPUP MODAL
 // ============================================
+let popupTriggerEl = null; // element that opened the popup
+
 function showPopup(phageData) {
+    // Store the trigger for focus restoration (only on first open, not navigation)
+    if (!currentPhage) {
+        popupTriggerEl = document.activeElement;
+    }
+
     currentPhage = phageData;
 
     const url = new URL(window.location);
@@ -1096,18 +1153,20 @@ function showPopup(phageData) {
 
     const overlay = document.getElementById('popup-overlay');
     overlay.classList.add('active');
+    overlay.setAttribute('aria-label', 'Phage details: ' + phageData.Phage);
 
     // Clear dynamic content so loaders re-run for the new phage
     d3.select('#genome-viewer').selectAll('*').remove();
-    document.getElementById('popup-content').scrollTop = 0;
+    const popupContent = document.getElementById('popup-content');
+    popupContent.scrollTop = 0;
 
     populateCustomInfo(phageData);
     // populateInfo(phageData);  // kept for future use
     loadGenome(phageData);
     loadStructure(phageData);
-    // Populate info tab
-    
-    
+
+    // Move focus into popup
+    popupContent.focus();
 }
 
 function hidePopup() {
@@ -1119,6 +1178,38 @@ function hidePopup() {
     const url = new URL(window.location);
     url.searchParams.delete('phage');
     history.pushState({}, '', url);
+
+    // Restore focus to the element that triggered the popup
+    if (popupTriggerEl) {
+        popupTriggerEl.focus();
+        popupTriggerEl = null;
+    }
+}
+
+// Focus trap for the popup dialog
+function handlePopupFocusTrap(event) {
+    const overlay = document.getElementById('popup-overlay');
+    if (!overlay.classList.contains('active') || event.key !== 'Tab') return;
+
+    const focusable = overlay.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    if (focusable.length === 0) return;
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+
+    if (event.shiftKey) {
+        if (document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+        }
+    } else {
+        if (document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+        }
+    }
 }
 
 function populateInfo(data) {
@@ -1184,6 +1275,7 @@ function populateCustomInfo(data) {
 
     const linkBtn = nameRow.append('button')
         .attr('title', 'Copy link to this phage')
+        .attr('aria-label', 'Copy link to this phage')
         .style('background', 'none')
         .style('border', 'none')
         .style('cursor', 'pointer')
@@ -1834,6 +1926,8 @@ async function loadGenome(p) {
                 .html('<h2 style="color: #CCC;">Click on a gene to see info here</h2>');
             
             sidebarButton = sidebar.append('button')
+                .attr('aria-label', 'Toggle gene details sidebar')
+                .attr('aria-expanded', 'false')
                 .style('font-size', '16px')
                 .style('background-color', '#3a3a3a')
                 .style('color', '#e0e0e0')
@@ -1848,12 +1942,12 @@ async function loadGenome(p) {
                 .on('click', () => {
                     if (sidebarExpanded) {
                         sidebar.style('width', '0');
-                        sidebarButton.html('<');
+                        sidebarButton.html('<').attr('aria-expanded', 'false');
                         sidebarContent.style('display', 'none');
                         sidebarExpanded = false;
                     } else {
                         sidebar.style('width', sidebarWidth + 'px');
-                        sidebarButton.html('>');
+                        sidebarButton.html('>').attr('aria-expanded', 'true');
                         sidebarContent.style('display', 'block');
                         sidebarExpanded = true;
                     }
@@ -1936,11 +2030,10 @@ async function loadGenome(p) {
             }
             
             sidebar.style('width', sidebarWidth + 'px');
-            sidebarButton.html('>');
+            sidebarButton.html('>').attr('aria-expanded', 'true');
             sidebarContent.style('display', 'block');
             sidebarContent.node().scrollTop = 0;
             sidebarExpanded = true;
-            console.log('sidebar shown' );
         };
         
         
@@ -2109,10 +2202,14 @@ document.addEventListener('DOMContentLoaded', () => {
         navigatePopup(1);
     });
 
-    // Keyboard shortcuts for popup
+    // Keyboard shortcuts and focus trap for popup
     document.addEventListener('keydown', (e) => {
         const overlay = document.getElementById('popup-overlay');
         if (!overlay.classList.contains('active')) return;
+
+        // Focus trap (Tab / Shift+Tab)
+        handlePopupFocusTrap(e);
+
         if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
 
         if (e.key === 'Escape') {

@@ -129,6 +129,58 @@ body {
     overflow-x: hidden;
 }
 
+/* ============================================
+   ACCESSIBILITY
+   ============================================ */
+:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+}
+
+.skip-link {
+    position: absolute;
+    left: -9999px;
+    top: auto;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    z-index: 99999;
+    padding: 8px 16px;
+    background: var(--accent-primary);
+    color: #fff;
+    font-size: 1rem;
+    text-decoration: none;
+    border-radius: 0 0 4px 0;
+}
+
+.skip-link:focus {
+    left: 0;
+    top: 0;
+    width: auto;
+    height: auto;
+    overflow: visible;
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
 .container {
     max-width: 2400px;
     margin: 0 auto;
@@ -947,6 +999,9 @@ thead .sticky-col-2 {
     width: 14px;
     height: 14px;
     margin-left: 3px;
+    padding: 0;
+    background: none;
+    border: none;
     cursor: pointer;
     color: var(--text-primary);
     vertical-align: middle;
@@ -970,6 +1025,9 @@ thead .sticky-col-2 {
     width: 12px;
     height: 12px;
     margin-left: 1px;
+    padding: 0;
+    background: none;
+    border: none;
     cursor: pointer;
     color: var(--accent-secondary);
     font-size: 0.75rem;
@@ -1024,13 +1082,16 @@ thead .sticky-col-2 {
     font-size: 0.7rem;
 }
 
-.col-filter-dropdown .filter-toggles a {
+.col-filter-dropdown .filter-toggles button {
+    background: none;
+    border: none;
     color: var(--accent-primary);
-    text-decoration: none;
     cursor: pointer;
+    font-size: inherit;
+    padding: 0;
 }
 
-.col-filter-dropdown .filter-toggles a:hover {
+.col-filter-dropdown .filter-toggles button:hover {
     text-decoration: underline;
 }
 
