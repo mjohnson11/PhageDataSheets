@@ -812,6 +812,13 @@ function updateTableFilter() {
         return false;
     });
 
+    // Update barseq link button text based on selection state
+    const hasSubset = selectedPhages.size > 0 || tableFilters.length > 0 || tableSearchText;
+    const barseqBtn = document.getElementById('barseq-link-btn');
+    if (barseqBtn) barseqBtn.textContent = hasSubset
+        ? 'See RB-TnSeq data for selected phages'
+        : 'See RB-TnSeq data for a subset of these phages';
+
     // Dim network nodes that are filtered out by table filters
     if (window.networkElements) {
         window.networkElements.node.attr('opacity', d => {
@@ -1962,16 +1969,21 @@ function getVisiblePhages() {
 
 function openBarseqBrowser(phages) {
     const url = new URL('barseq_browser/BW25113/index.html', window.location.href);
-    url.searchParams.set('phages', phages.join(','));
+    if (phages) url.searchParams.set('phages', phages.join(','));
     window.open(url.toString(), '_blank');
 }
 
 function handleBarseqLinkClick() {
     const phages = getVisiblePhages();
 
+    const hasSubset = selectedPhages.size > 0 || tableFilters.length > 0 || tableSearchText;
+
     if (phages.length < 21) {
         openBarseqBrowser(phages);
         return;
+    } else if (~hasSubset) {
+        openBarseqBrowser(null);
+        return
     }
 
     // Show warning popup
