@@ -110,14 +110,16 @@ const receptorColors = {
   BtuB: seaborn_cb_palette[5],
   LptD: seaborn_cb_palette[6],
   LamB: seaborn_cb_palette[7],
-  NGR: seaborn_cb_palette[8]
+  NGR: seaborn_cb_palette[8],
+  Resistant: '#555'
 };
 
 const lpsColors = {
     Kdo: seaborn_cb_palette[0],
     HepI: seaborn_cb_palette[1],
     HepII: seaborn_cb_palette[2],
-    GluI: seaborn_cb_palette[3]
+    GluI: seaborn_cb_palette[3],
+    Resistant: '#555'
 }
 
 const lifestyleColors = {
@@ -153,9 +155,9 @@ function updateNetworkColors() {
         .transition()
         .duration(200)
         .attr('fill', d => {
-            if (!d.data) return '#555';
+            if (!d.data) return '#CCC';
             const val = d.data[currentNetworkColorColumn];
-            return (val && colorMap[val]) ? colorMap[val] : '#555';
+            return (val && colorMap[val]) ? colorMap[val] : '#CCC';
         });
 }
 
@@ -526,7 +528,7 @@ function initializeNetwork() {
         .attr('fill', d => {
             const colorMap = networkColorMaps[currentNetworkColorColumn];
             const val = d.data ? d.data[currentNetworkColorColumn] : null;
-            return (val && colorMap[val]) ? colorMap[val] : '#555';
+            return (val && colorMap[val]) ? colorMap[val] : '#CCC';
         })
         .on('mouseover', handleNodeMouseOver)
         .on('mouseout', handleNodeMouseOut)
