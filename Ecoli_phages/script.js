@@ -1,4 +1,23 @@
 // ============================================
+function toggleNetwork() {
+    const container = d3.select('.network-body-wrapper');
+    const btn = d3.select('#toggle-network-btn');
+
+    // Return early if the selection is empty
+    if (container.empty()) return;
+
+    // Check current display style
+    const isHidden = container.style('display') === 'none';
+    if (isHidden) {
+        container.style('display', 'flex');
+        btn.text('Hide Network');
+    } else {
+        container.style('display', 'none');
+        btn.text('Show Network');
+    }
+}
+
+// ============================================
 // GLOBAL STATE
 // ============================================
 let phageData = [];
@@ -6,7 +25,7 @@ let eopData = [];
 let BL21GeneData = [];
 let KeioGeneData = [];
 let dubseqPhages = [];
-let networkData = { nodes: [], links: [] };
+let networkData = { nodes: [], links: []};
 let selectedPhages = new Set();
 let highlightedPhage = null;
 let currentPhage = null;
@@ -17,23 +36,172 @@ let tableSort = { column: null, direction: 0 }; // 0=default, 1=asc, -1=desc
 let tableSearchText = '';
 let openFilterDropdownEl = null;
 
-// colors and shapes
-porin_colors = {
-    'FadL': '#727fd9',
-    'Tsx': '#66af6c',
-    'OmpA': '#8551a7',
-    'OmpC': '#a89d3f',
-    'OmpF': '#b05742',
-    'OmpW': '#e263a8'
+const manual_network_annotations = [
+    {Text: "Dhillonvirus", x: -1220, y: 600, align_side: 'end'},
+    {Text: "Ackermannviridae", x: 630, y: 140, align_side: 'middle'},
+    {Text: "Vequintavirus", x: -1250, y: -450, align_side: 'end'},
+    {Text: "Justusliebigvirus", x: -820, y: -650, align_side: 'start'},
+    {Text: "Krischvirus", x: -370, y:-540, align_side: 'middle'},
+    {Text: "Tequatrovirus", x: -690, y: 220, align_side: 'middle'},
+    {Text: "Gordonclarckvirinae", x: -200, y: -150, align_side: 'middle'},
+    {Text: "Skatevirus", x: 270, y: 500, align_side: 'middle'},
+    {Text: "Lindbergviridae", x: 900, y: -150, align_side: 'middle'},
+    {Text: "Hendrixvirinae", x: -1320, y: 150, align_side: 'start'},
+    {Text: "Autotranscriptaviridae", x: 230, y: -270, align_side: 'middle'},
+    {Text: "Demerecviridae", x: 850, y: -780, align_side: 'middle'},
+    {Text: "Kagunavirus", x: -1730, y: 490, align_side: 'end'},
+    {Text: "Enquatrovirinae", x: 350, y: -150, align_side: 'middle'},
+    {Text: "Mosigvirus", x: -780, y: -360, align_side: 'middle'},
+    {Text: "Felixounavirus", x: 550, y: -520, align_side: 'middle'},
+    {Text: "Queuovirinae", x: 70, y: 140, align_side: 'middle'},
+    {Text: "Drexlerviridae", x: -500, y: 540, align_side: 'end'}
+]
+
+const seaborn_cb_palette = [
+    '#0173b2',
+    '#de8f05',
+    '#029e73',
+    '#d55e00',
+    '#cc78bc',
+    '#ca9161',
+    '#fbafe4',
+    '#ece133',
+    '#56b4e9'
+]
+/*
+Old color scheme
+const receptorColors = {
+  Tsx: "#fdd49e",
+  OmpF: "#025a32",
+  OmpA: "#42ab5d",
+  OmpC: "#9ad8ca",
+  FhuA: "#df66b0",
+  BtuB: "#215fa8",
+  LptD: "#8c97c6",
+  LamB: "#fb6b4b",
+  NGR: "#ffc450"SW
+};
+
+const lpsColors = {
+    Kdo: "#f98f30",
+    HepI: "#de0077",
+    HepII: "#4392c7",
+    GluI: "#42ab5d"
 }
 
-LPS_shapes = {
-    'Kdo': 'circle',
-    'HepI': 'square',
-    'HepII': 'diamond',
-    'GluI': 'triangle_point_up',
-    'GluII': 'triangle_point_down',
-    'Resistant': 'x'
+const lifestyleColors = {
+    'lytic': '#fb6a4a',
+    'temperate/lytic': '#a1d99b',
+    'temperate': '#31a354'
+};
+
+const morphotypeColors = {
+    'Myovirus': '#9e9ac8',
+    'Siphovirus': '#fdae6b',
+    'Podovirus': '#9ecae1'
+};
+*/
+const receptorColors = {
+  Tsx: seaborn_cb_palette[0],
+  OmpF: seaborn_cb_palette[1],
+  OmpA: seaborn_cb_palette[2],
+  OmpC: seaborn_cb_palette[3],
+  FhuA: seaborn_cb_palette[4],
+  BtuB: seaborn_cb_palette[5],
+  LptD: seaborn_cb_palette[6],
+  LamB: seaborn_cb_palette[7],
+  NGR: seaborn_cb_palette[8]
+};
+
+const lpsColors = {
+    Kdo: seaborn_cb_palette[0],
+    HepI: seaborn_cb_palette[1],
+    HepII: seaborn_cb_palette[2],
+    GluI: seaborn_cb_palette[3]
+}
+
+const lifestyleColors = {
+    'lytic': seaborn_cb_palette[0],
+    'temperate/lytic': seaborn_cb_palette[1],
+    'temperate': seaborn_cb_palette[2]
+};
+
+const morphotypeColors = {
+    'Myovirus': seaborn_cb_palette[0],
+    'Siphovirus': seaborn_cb_palette[1],
+    'Podovirus': seaborn_cb_palette[2]
+};
+
+const networkColorMaps = {
+    "BW25113 receptor": receptorColors,
+    "BW25113 LPS sugar": lpsColors,
+    "Lifestyle": lifestyleColors,
+    "Morphotype": morphotypeColors
+};
+
+let currentNetworkColorColumn = "BW25113 receptor";
+
+d3.select('#legend-select').on('change', function() {
+    currentNetworkColorColumn = d3.select(this).property('value');
+    updateNetworkColors();
+    renderInteractiveLegend();
+});
+
+function updateNetworkColors() {
+    const colorMap = networkColorMaps[currentNetworkColorColumn];
+    d3.selectAll('.network_node')
+        .transition()
+        .duration(200)
+        .attr('fill', d => {
+            if (!d.data) return '#555';
+            const val = d.data[currentNetworkColorColumn];
+            return (val && colorMap[val]) ? colorMap[val] : '#555';
+        });
+}
+
+function renderInteractiveLegend() {
+    const container = d3.select('#legend-items');
+    container.selectAll('*').remove();
+    
+    const colorMap = networkColorMaps[currentNetworkColorColumn];
+    if (!colorMap) return;
+
+    Object.entries(colorMap).forEach(([val, color]) => {
+        const row = container.append('div')
+            .attr('class', 'legend-item-row')
+            .attr('title', `Filter table by ${val}`)
+            .attr('data-legend-val', val)
+            .on('click', () => {
+                const existingFilter = tableFilters.find(f => f.column === currentNetworkColorColumn);
+                if (existingFilter && existingFilter.values.has(val) && existingFilter.values.size === 1) {
+                    clearColumnFilter(currentNetworkColorColumn);
+                    d3.selectAll('.legend-item-row').classed('.active-legend-filter', false)
+                } else {
+                    setColumnFilter(currentNetworkColorColumn, [val]);
+                    d3.selectAll('.legend-item-row').classed('.active-legend-filter', false)
+                    d3.select(this).classed('active-legend-filter', true);
+                }
+            });
+            
+        row.append('div')
+            .attr('class', 'legend-color-box')
+            .style('background', color);
+            
+        row.append('span')
+            .text(val);
+    });
+
+    if (typeof updateLegendSelection === 'function') updateLegendSelection();
+}
+
+function updateLegendSelection() {
+    const activeFilterBox = tableFilters.find(f => f.column === currentNetworkColorColumn);
+    let activeValues = new Set();
+    if (activeFilterBox) activeValues = activeFilterBox.values;
+
+    d3.selectAll('.legend-item-row').classed('active-legend-filter', function() {
+        return activeValues.has(d3.select(this).attr('data-legend-val'));
+    });
 }
 
 // SVG dimensions for network
@@ -58,16 +226,20 @@ async function loadData() {
         dubseqPhages = new Set(dubseq_metadata.map((row) => row['phage']));
 
         // Load network data
-        const ntwResponse = await fetch('./data/c1_new.ntw');
-        const ntwText = await ntwResponse.text();
-        const rawNetworkData = parseNTW(ntwText);
+        // const ntwResponse = await fetch('./data/c1_new.ntw');
+        // const ntwText = await ntwResponse.text();
+        // const rawNetworkData = parseNTW(ntwText);
         
-        // Filter network data to only include phages in the TSV
-        const phageNames = new Set(phageData.map(d => d.Phage));
-        const filteredLinks = rawNetworkData.filter(link => 
-            phageNames.has(link.source) && phageNames.has(link.target)
-        );
+        // // Filter network data to only include phages in the TSV
+        // const phageNames = new Set(phageData.map(d => d.Phage));
+        // const filteredLinks = rawNetworkData.filter(link => 
+        //     phageNames.has(link.source) && phageNames.has(link.target)
+        // );
         
+        // We'll attach the new raw items to networkData so initializeNetwork can access them
+        networkData.rawNodes = await d3.csv('./data/network_nodes.csv');
+        networkData.rawEdges = await d3.csv('./data/network_edges.csv');
+
         // Sort phage data by taxonomy
         phageData.sort((a, b) => {
             const classCompare = (b.Class || '').localeCompare(a.Class || '');
@@ -105,11 +277,11 @@ async function loadData() {
         console.log(networkData.nodes)
         */
         
-        networkData.links = filteredLinks.map(link => ({
-            source: link.source,
-            target: link.target,
-            weight: link.weight
-        }));
+        // networkData.links = filteredLinks.map(link => ({
+        //     source: link.source,
+        //     target: link.target,
+        //     weight: link.weight
+        // }));
         
         // Generate family colors
         generateFamilyColors();
@@ -189,26 +361,43 @@ function initializeNetwork() {
     const container = d3.select('#network-container');
     container.selectAll('*').remove();
     
-    // Fixed canonical dimensions — simulation always runs in this space so layout is identical
-    // regardless of actual window size. SVG viewBox scales it to fill the container.
+    // Fixed canonical dimensions
     const CANON_W = 1040;
-    const CANON_H = 940;
+    
+    const xExtent = d3.extent(networkData.rawNodes, d => +d.x);
+    const yExtent = d3.extent(networkData.rawNodes, d => +d.y);
+    const dataAspectRatio = (yExtent[1] - yExtent[0]) / (xExtent[1] - xExtent[0]);
+    
     networkWidth = CANON_W - networkMargin.left - networkMargin.right;
-    networkHeight = CANON_H - networkMargin.top - networkMargin.bottom;
+    networkHeight = networkWidth * dataAspectRatio;
+    const CANON_H = networkHeight + networkMargin.top + networkMargin.bottom;
 
-    const svg = container.append('svg')
+    const wrapper = container.append('div')
+        .style('position', 'relative')
+        .style('width', '100%')
+        .style('aspect-ratio', `${CANON_W} / ${CANON_H}`);
+
+    const canvas = wrapper.append('canvas')
+        .attr('width', CANON_W)
+        .attr('height', CANON_H)
+        .style('position', 'absolute')
+        .style('top', '0')
+        .style('left', '0')
+        .style('width', '100%')
+        .style('height', '100%');
+
+    const ctx = canvas.node().getContext('2d');
+
+    const svg = wrapper.append('svg')
         .attr('viewBox', `0 0 ${CANON_W} ${CANON_H}`)
         .attr('width', '100%')
         .attr('height', '100%')
         .attr('preserveAspectRatio', 'xMidYMid meet')
         .attr('role', 'img')
-        .attr('aria-label', `Network graph of ${networkData.nodes.length} phages colored by family, showing sequence similarity connections`);
-    
-    const background_g = svg.append('g')
-        .attr('transform', `translate(${networkMargin.left},${networkMargin.top})`);
-
-    const g = svg.append('g')
-        .attr('transform', `translate(${networkMargin.left},${networkMargin.top})`);
+        .attr('aria-label', `Network graph of ${networkData.nodes.length} phages colored by family, showing sequence similarity connections`)
+        .style('position', 'absolute')
+        .style('top', '0')
+        .style('left', '0');
     
     // Create legend for families with 2+ phages
     const familyCounts = {};
@@ -225,8 +414,8 @@ function initializeNetwork() {
     
     const legend = svg.append('g')
         .attr('class', 'legend')
-        .attr('transform', `translate(5, 5)`);
-
+        .attr('transform', `translate(5, 5)`)
+        .style('display', 'none');
 
     legend.append('text')
         .attr('x', 0)
@@ -235,7 +424,6 @@ function initializeNetwork() {
         .style('font-weight', 'bold')
         .style('fill', '#CCC')
         .text('Family');
-
 
     legendFamilies.forEach((family, i) => {
         const legendRow = legend.append('g')
@@ -256,98 +444,119 @@ function initializeNetwork() {
             .style('fill', '#CCC')
             .text(`${family} (${familyCounts[family]})`);
     });
-    
-    // Create links group
-    const linksGroup = g.append('g').attr('class', 'links');
-    
-    // Create nodes group
-    const nodesGroup = g.append('g').attr('class', 'nodes');
-    
-    
-    // Create brush
+
     const brush = d3.brush()
-        .extent([[0, 0], [networkWidth, networkHeight]])
+        .extent([[0, 0], [CANON_W, CANON_H]])
         .on('start brush', brushUpdate);
     
-    const brushGroup = background_g.append('g')
+    const brushGroup = svg.append('g')
         .attr('class', 'brush')
-        .style('pointer-events', 'none')
         .call(brush);
     
-    // Re-enable pointer events only on brush overlay
-    brushGroup.select('.overlay')
-        .style('pointer-events', 'all');
-    
+    const nodesGroup = svg.append('g').attr('class', 'nodes');
 
-    // Seed initial node positions so simulation converges to the same layout every time
-    const rng = seededRandom(1);
-    networkData.nodes.forEach(d => {
-        d.x = networkMargin.left + rng() * networkWidth;
-        d.y = networkMargin.top + rng() * networkHeight;
-        d.vx = 0;
-        d.vy = 0;
+    // Set up scales using rawNodes
+    const xScale = d3.scaleLinear()
+        .domain(xExtent)
+        .range([networkMargin.left, CANON_W - networkMargin.right]); 
+
+    const yScale = d3.scaleLinear()
+        .domain(yExtent)
+        .range([networkMargin.top, CANON_H - networkMargin.bottom]);
+
+    const coordsMap = {};
+    networkData.rawNodes.forEach(d => {
+        coordsMap[d.ID] = {
+            x: xScale(+d.x),
+            y: yScale(+d.y)
+        };
+    });
+    
+    const nameToCoords = {};
+    networkData.rawNodes.forEach(d => {
+        nameToCoords[d.Phage] = coordsMap[d.ID];
     });
 
-    // Create force simulation
-    const simulation = d3.forceSimulation(networkData.nodes)
-        .force('link', d3.forceLink(networkData.links)
-            .id(d => d.id)
-            .distance(d => 60 / Math.log(d.weight + 1))
-            .strength(d => Math.min(d.weight / 200, 0.6))
-        )
-        .force('charge', d3.forceManyBody().strength(-45))
-        .force('center', d3.forceCenter(networkWidth / 2, networkHeight / 2))
-        .force('x', d3.forceX(networkWidth / 2).strength(0.04))
-        .force('y', d3.forceY(networkHeight / 2).strength(0.04))
-        .force('collision', d3.forceCollide().radius(8))
-        .alpha(1)
-        .alphaDecay(0.05)
-        .velocityDecay(0.7);
+    networkData.nodes.forEach(n => {
+        if(nameToCoords[n.id]) {
+            n.x = nameToCoords[n.id].x;
+            n.y = nameToCoords[n.id].y;
+        } else {
+            n.x = -100;
+            n.y = -100;
+        }
+    });
+
+    // Draw on Canvas
+    ctx.strokeStyle = '#cccccc';
+    ctx.lineWidth = 1;
+    ctx.globalAlpha = 0.5;
+    ctx.beginPath();
+    // rawEdges map to rawNodes ID
+    networkData.rawEdges.forEach(edge => {
+        const source = coordsMap[edge.source];
+        const target = coordsMap[edge.target];
+        if(source && target) {
+            ctx.moveTo(source.x, source.y);
+            ctx.lineTo(target.x, target.y);
+        }
+    });
+    ctx.stroke();
+
+    ctx.fillStyle = '#777777';
+    ctx.globalAlpha = 1.0;
+    networkData.rawNodes.forEach(n => {
+        const p = coordsMap[n.ID];
+        if(p) {
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 4, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+    });
     
-    // Draw links
-    const link = linksGroup.selectAll('line')
-        .data(networkData.links)
-        .join('line')
-        .attr('class', 'link')
-        .attr('stroke-width', d => Math.max(0.5, Math.min(d.weight / 20, 3)));
-    
-    // Draw nodes
-    const node = nodesGroup.selectAll('circle')
-        .data(networkData.nodes)
+    // Draw SVG nodes for data in phageData
+    const nodeData = networkData.nodes.filter(d => nameToCoords[d.id]);
+    nodesGroup.selectAll('.network_node')
+        .data(nodeData)
         .join('circle')
-        .attr('class', 'node')
+        .attr('class', 'network_node')
+        .attr('cx', d => d.x)
+        .attr('cy', d => d.y)
         .attr('r', 6)
-        .attr('fill', d => d.data ? getFamilyColor(d.data.Family) : '#555')
+        .attr('fill', d => {
+            const colorMap = networkColorMaps[currentNetworkColorColumn];
+            const val = d.data ? d.data[currentNetworkColorColumn] : null;
+            return (val && colorMap[val]) ? colorMap[val] : '#555';
+        })
         .on('mouseover', handleNodeMouseOver)
         .on('mouseout', handleNodeMouseOut)
         .on('click', handleNodeClick);
+
+    const annotationGroup = svg.append('g').attr('class', 'annotations');
+    annotationGroup.selectAll('.network_annotation')
+        .data(manual_network_annotations)
+        .join('text')
+        .attr('class', 'network_annotation')
+        .attr('x', d => xScale(d.x))
+        .attr('y', d => yScale(d.y))
+        .text(d => d.Text)
+        .attr('fill', '#CCC')
+        .attr('font-size', '14px')
+        .attr('font-weight', 'bold')
+        .attr('font-style', 'italic')
+        .attr('text-anchor', d => d.align_side);
     
-    // Update positions on simulation tick with boundary constraints
-    simulation.on('tick', () => {
-        // Constrain nodes to stay within bounds
-        networkData.nodes.forEach(d => {
-            d.x = Math.max(10, Math.min(networkWidth - 10, d.x));
-            d.y = Math.max(10, Math.min(networkHeight - 10, d.y));
-        });
-        
-        link
-            .attr('x1', d => d.source.x)
-            .attr('y1', d => d.source.y)
-            .attr('x2', d => d.target.x)
-            .attr('y2', d => d.target.y);
-        
-        node
-            .attr('cx', d => d.x)
-            .attr('cy', d => d.y);
-    });
+    // (Preserved legacy simulation code disabled here)
+    /*
+    const rng = seededRandom(1);
+    // ... rng and simulation init was here ... 
+    const simulation = d3.forceSimulation(networkData.nodes) ... 
+    */
     
-    // Store references for later use
-    window.networkElements = { node, link, simulation };
     
     function brushUpdate(event) {
         if (!event.selection) {
             selectedPhages.clear();
-            console.log('huh')
             updateTableFilter();
             return;
         }
@@ -361,11 +570,10 @@ function initializeNetwork() {
             }
         });
         updateTableFilter();
-        node.classed('selected', d => selectedPhages.has(d.id));
-        
-        // Clear brush selection
-        //brushGroup.call(brush.move, null);
+        nodesGroup.selectAll('.network_node').classed('selected', d => selectedPhages.has(d.id));
     }
+
+    renderInteractiveLegend();
 }
 
 function handleNodeMouseOver(event, d) {
@@ -406,16 +614,19 @@ function handleNodeClick(event, d) {
 }
 
 function highlightNodeByPhage(phageName) {
-    if (!window.networkElements) return;
-    
-    window.networkElements.node
-        .classed('highlighted', d => d.id === phageName);
+    d3.selectAll('.network_node')
+        .classed('highlighted', function(d) {
+            if (d.id === phageName) {
+                d3.select(this).raise();
+                return true;
+            } else { 
+                return false
+            }
+        });
 }
 
 function clearNodeHighlight() {
-    if (!window.networkElements) return;
-    
-    window.networkElements.node
+    d3.selectAll('.network_node')
         .classed('highlighted', false);
 }
 
@@ -493,7 +704,7 @@ function initializeTable() {
             .attr('data-filter-col', col)
             .attr('aria-label', 'Filter ' + label)
             .attr('aria-expanded', 'false')
-            .html('<svg viewBox="0 0 16 16" width="10" height="10" fill="currentColor" aria-hidden="true"><path d="M1.5 1.5h13L9 8v4.5l-2 1.5V8z"/></svg>')
+            .html('<svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" aria-hidden="true"><path d="M1.5 1.5h13L9 8v4.5l-2 1.5V8z"/></svg>')
             .on('click', function(event) {
                 event.stopPropagation();
                 openColumnFilter(col, this);
@@ -823,6 +1034,8 @@ function updateFilterIndicators() {
         const col = d3.select(this).attr('data-filter-col');
         d3.select(this).style('display', activeCols.has(col) ? 'inline-flex' : 'none');
     });
+
+    if (typeof updateLegendSelection === 'function') updateLegendSelection();
 }
 
 function updateTableFilter() {
@@ -854,32 +1067,41 @@ function updateTableFilter() {
 
     // Update barseq link button text based on selection state
     const hasSubset = selectedPhages.size > 0 || tableFilters.length > 0 || tableSearchText;
-    const barseqBtn = document.getElementById('barseq-link-btn');
-    if (barseqBtn) barseqBtn.textContent = hasSubset
-        ? 'See RB-TnSeq data for selected phages'
-        : 'See RB-TnSeq data for a subset of these phages';
+    const barseqBtn = d3.select('#barseq-link-btn');
+    if (!barseqBtn.empty()) {
+        barseqBtn.text(hasSubset
+            ? 'See RB-TnSeq data for selected phages'
+            : 'See RB-TnSeq data for a subset of these phages'
+        );
+    }
 
     // Announce filter results to screen readers
-    const statusEl = document.getElementById('a11y-status');
-    if (statusEl && hasSubset) {
-        const visibleCount = d3.selectAll('.phage-table tbody tr')
-            .filter(function() { return !d3.select(this).classed('filtered_out_row'); }).size();
-        statusEl.textContent = `Showing ${visibleCount} of ${phageData.length} phages`;
-    } else if (statusEl) {
-        statusEl.textContent = '';
+    const statusEl = d3.select('#a11y-status');
+    if (!statusEl.empty()) {
+        if (hasSubset) {
+            // Use D3 filter to count rows that do NOT have the 'filtered_out_row' class
+            const visibleCount = d3.selectAll('.phage-table tbody tr')
+                .filter(function() { 
+                    return !d3.select(this).classed('filtered_out_row'); 
+                })
+                .size();
+
+            statusEl.text(`Showing ${visibleCount} of ${phageData.length} phages`);
+        } else {
+            statusEl.text('');
+        }
     }
 
-    // Dim network nodes that are filtered out by table filters
-    if (window.networkElements) {
-        window.networkElements.node.attr('opacity', d => {
-            if (tableFilters.length === 0) return 1;
+    // Hide network nodes that are filtered out by table filters
+    d3.selectAll('.network_node')
+        .attr('visibility', d => {
+            if (tableFilters.length === 0) return 'visible';
             for (const filter of tableFilters) {
                 const value = d.data ? d.data[filter.column] : null;
-                if (!filter.values.has(value)) return 0.15;
+                if (!filter.values.has(value)) return 'hidden';
             }
-            return 1;
+            return 'visible';
         });
-    }
 }
 
 function showFilterPopup() {
@@ -1140,7 +1362,7 @@ function showFilterPopup() {
 let popupTriggerEl = null; // element that opened the popup
 
 function showPopup(phageData) {
-    // Store the trigger for focus restoration (only on first open, not navigation)
+    // Store trigger for focus restoration
     if (!currentPhage) {
         popupTriggerEl = document.activeElement;
     }
@@ -1151,35 +1373,36 @@ function showPopup(phageData) {
     url.searchParams.set('phage', phageData.Phage);
     history.pushState({}, '', url);
 
-    const overlay = document.getElementById('popup-overlay');
-    overlay.classList.add('active');
-    overlay.setAttribute('aria-label', 'Phage details: ' + phageData.Phage);
+    // Update overlay state and accessibility
+    d3.select('#popup-overlay')
+        .classed('active', true)
+        .attr('aria-label', `Phage details: ${phageData.Phage}`);
 
-    // Clear dynamic content so loaders re-run for the new phage
+    // Clear dynamic content
     d3.select('#genome-viewer').selectAll('*').remove();
-    const popupContent = document.getElementById('popup-content');
-    popupContent.scrollTop = 0;
-
+    
+    const popupContent = d3.select('#popup-content');
+    popupContent.node().scrollTop = 0; // Access underlying DOM node for property update
+    
     populateCustomInfo(phageData);
-    // populateInfo(phageData);  // kept for future use
     loadGenome(phageData);
     loadStructure(phageData);
 
     // Move focus into popup
-    popupContent.focus();
+    popupContent.node().focus();
 }
 
 function hidePopup() {
-    const overlay = document.getElementById('popup-overlay');
-    overlay.classList.remove('active');
+    d3.select('#popup-overlay').classed('active', false);
     d3.select('#popup-content').style('height', null);
+    
     currentPhage = null;
 
     const url = new URL(window.location);
     url.searchParams.delete('phage');
     history.pushState({}, '', url);
 
-    // Restore focus to the element that triggered the popup
+    // Restore focus
     if (popupTriggerEl) {
         popupTriggerEl.focus();
         popupTriggerEl = null;
@@ -1188,16 +1411,19 @@ function hidePopup() {
 
 // Focus trap for the popup dialog
 function handlePopupFocusTrap(event) {
-    const overlay = document.getElementById('popup-overlay');
-    if (!overlay.classList.contains('active') || event.key !== 'Tab') return;
+    const overlay = d3.select('#popup-overlay');
+    if (!overlay.classed('active') || event.key !== 'Tab') return;
 
-    const focusable = overlay.querySelectorAll(
+    // Use d3.selectAll to find focusable elements
+    const focusable = overlay.selectAll(
         'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
     );
-    if (focusable.length === 0) return;
+    
+    if (focusable.empty()) return;
 
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
+    const nodes = focusable.nodes();
+    const first = nodes[0];
+    const last = nodes[nodes.length - 1];
 
     if (event.shiftKey) {
         if (document.activeElement === first) {
@@ -1704,10 +1930,10 @@ function measure_text(string, fontSize = 10) {
 async function loadGenome(p) {
     console.log('loading genome for ', p);
 
-    const container = document.getElementById('genome-viewer');
+    const container = d3.select('#genome-viewer');
     
     // Check if already loaded
-    if (container.querySelector('canvas')) return;
+    if (container.node().querySelector('canvas')) return;
 
     
     try {
@@ -2039,7 +2265,7 @@ async function loadGenome(p) {
         
     } catch (error) {
         console.error('Error loading genome:', error);
-        container.innerHTML = `<p style="color: var(--accent-secondary);">Error loading genome: ${error.message}</p>`;
+        container.html(`<p style="color: var(--accent-secondary);">Error loading genome: ${error.message}</p>`);
     }
 }
 
@@ -2181,54 +2407,58 @@ function navigatePopup(direction) {
 // ============================================
 // EVENT LISTENERS
 // ============================================
-document.addEventListener('DOMContentLoaded', () => {
-    loadData();
+document.addEventListener('DOMContentLoaded', () => {    loadData();
 
     // Close popup
-    document.getElementById('popup-close').addEventListener('click', hidePopup);
-    document.getElementById('popup-overlay').addEventListener('click', (e) => {
-        if (e.target.id === 'popup-overlay') {
+    d3.select('#popup-close').on('click', hidePopup);
+    
+    d3.select('#popup-overlay').on('click', function(event) {
+        // d3.select(this) refers to the element the listener is attached to
+        if (event.target.id === 'popup-overlay') {
             hidePopup();
         }
     });
 
     // Popup navigation buttons
-    document.getElementById('popup-nav-left').addEventListener('click', (e) => {
-        e.stopPropagation();
+    d3.select('#popup-nav-left').on('click', (event) => {
+        event.stopPropagation();
         navigatePopup(-1);
     });
-    document.getElementById('popup-nav-right').addEventListener('click', (e) => {
-        e.stopPropagation();
+
+    d3.select('#popup-nav-right').on('click', (event) => {
+        event.stopPropagation();
         navigatePopup(1);
     });
 
     // Keyboard shortcuts and focus trap for popup
-    document.addEventListener('keydown', (e) => {
-        const overlay = document.getElementById('popup-overlay');
-        if (!overlay.classList.contains('active')) return;
+    d3.select(document).on('keydown', (event) => {
+        const overlay = d3.select('#popup-overlay');
+        if (!overlay.classed('active')) return;
 
         // Focus trap (Tab / Shift+Tab)
-        handlePopupFocusTrap(e);
+        handlePopupFocusTrap(event);
 
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+        const targetTag = event.target.tagName;
+        if (targetTag === 'INPUT' || targetTag === 'TEXTAREA') return;
 
-        if (e.key === 'Escape') {
+        if (event.key === 'Escape') {
             hidePopup();
-        } else if (e.key === 'ArrowLeft') {
-            e.preventDefault();
+        } else if (event.key === 'ArrowLeft') {
+            event.preventDefault();
             navigatePopup(-1);
-        } else if (e.key === 'ArrowRight') {
-            e.preventDefault();
+        } else if (event.key === 'ArrowRight') {
+            event.preventDefault();
             navigatePopup(1);
         }
     });
 
-    // Handle window resize
+    // Handle window resize with a basic debounce
     let resizeTimeout;
-    window.addEventListener('resize', () => {
+    d3.select(window).on('resize', () => {
         clearTimeout(resizeTimeout);
         resizeTimeout = setTimeout(() => {
-            if (phageData.length > 0) {
+            // Assuming phageData is a global variable
+            if (typeof phageData !== 'undefined' && phageData.length > 0) {
                 initializeTable();
             }
         }, 250);

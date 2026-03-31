@@ -209,14 +209,14 @@ body {
     color: #CCC;
 }
 
-.main-content {
-    display: grid;
-    grid-template-columns: 2fr 3fr;
+.main-content-stacked {
+    display: flex;
+    flex-direction: column;
     gap: var(--spacing-lg);
-    margin-bottom: var(--spacing-lg);
+    margin: 0 auto var(--spacing-lg);
 }
 
-.main-content .section {
+.main-content-stacked .section {
     margin-bottom: 0;
     background-color: transparent;
     box-shadow: none;
@@ -227,6 +227,9 @@ body {
     display: flex;
     flex-direction: column;
     min-width: 0;
+    max-width: 1020px;
+    align-self: center;
+    width: 100%;
 }
 
 #table-section {
@@ -238,14 +241,73 @@ body {
 /* ============================================
    NETWORK VISUALIZATION
    ============================================ */
-#network-container {
+.network-body-wrapper {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 20px;
     width: 100%;
-    height: 68vh;
-    min-height: 500px;
+}
+
+#network-container {
+    flex: 1;
     background-color: transparent;
     border-radius: 4px;
     position: relative;
     overflow: hidden;
+    min-width: 0;
+}
+
+.interactive-legend {
+    flex-shrink: 0;
+    width: 180px;
+    padding: 10px 0;
+}
+
+#legend-select {
+    width: 100%;
+    margin-bottom: 12px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-highlight);
+    border-radius: 4px;
+    padding: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+}
+
+#legend-select:focus {
+    border-color: var(--accent-primary);
+}
+
+.legend-item-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: background 0.15s;
+}
+
+.legend-item-row:hover {
+    background: var(--bg-hover);
+}
+
+.active-legend-filter {
+    outline: 2px solid var(--accent-primary);
+    background: var(--bg-hover);
+}
+
+.legend-color-box {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    flex-shrink: 0;
 }
 
 #network-container svg {
@@ -253,24 +315,24 @@ body {
     height: 100%;
 }
 
-.node {
+.network_node {
     cursor: pointer;
     stroke: var(--bg-primary);
     stroke-width: 2px;
     /*transition: all 0.2s ease;*/
 }
 
-.node:hover {
-    stroke: var(--accent-primary);
+.network_node:hover {
+    stroke: var(--accent-secondary);
     stroke-width: 3px;
 }
 
-.node.highlighted {
-    stroke: var(--accent-warning);
+.network_node.highlighted {
+    stroke: var(--accent-secondary);
     stroke-width: 4px;
 }
 
-.node.selected {
+.network_node.selected {
     stroke: var(--accent-success);
     stroke-width: 3px;
 }
@@ -361,7 +423,7 @@ body {
 }
 
 .phage-table th {
-    padding: 3px 5px;
+    padding: 2px 0px 2px 12px;
     text-align: left;
     font-weight: 600;
     color: #CCC;
@@ -390,7 +452,7 @@ body {
 }
 
 .phage-table td {
-    padding: 2px 8px;
+    padding: 2px 0px 2px 12px;
     border-bottom: 1px solid var(--border-color);
     font-size: 0.7rem;
 }
@@ -873,11 +935,7 @@ thead .sticky-col-2 {
 /* ============================================
    RESPONSIVE DESIGN
    ============================================ */
-@media (max-width: 1200px) {
-    .main-content {
-        grid-template-columns: 1fr;
-    }
-}
+
 
 @media (max-width: 768px) {
     .main-title {
@@ -894,9 +952,6 @@ thead .sticky-col-2 {
         grid-template-columns: 1fr;
     }
     
-    #network-container {
-        height: 400px;
-    }
 }
 
 /* ============================================
@@ -996,9 +1051,9 @@ thead .sticky-col-2 {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 14px;
-    height: 14px;
-    margin-left: 3px;
+    width: 18px;
+    height: 18px;
+    margin-left: 2px;
     padding: 0;
     background: none;
     border: none;
@@ -1022,15 +1077,15 @@ thead .sticky-col-2 {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 12px;
-    height: 12px;
+    width: 18px;
+    height: 18px;
     margin-left: 1px;
     padding: 0;
     background: none;
     border: none;
     cursor: pointer;
     color: var(--accent-secondary);
-    font-size: 0.75rem;
+    font-size: 1.5rem;
     font-weight: bold;
     line-height: 1;
     opacity: 0.7;

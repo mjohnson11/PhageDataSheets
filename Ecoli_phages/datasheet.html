@@ -21,7 +21,7 @@
     <script src="https://cdn.jsdelivr.net/npm/cgparse/dist/cgparse.min.js"></script>
     
     <!-- Custom styles -->
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=3">
     <link rel="icon" href="./assets/Phage-Foundry-Logo-simple_edit.png" type="image/x-icon">
 
 </head>
@@ -43,9 +43,25 @@
 
     <main class="container">
 
-        <div class="main-content">
+        <div class="main-content-stacked">
             <div id="network-section" class="section">
-                <div id="network-container"></div>
+                <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
+                    <button id="toggle-network-btn" onclick="toggleNetwork()" style="padding: 6px 12px; cursor: pointer; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 4px; transition: background 0.2s;">Hide Network</button>
+                </div>
+                
+                <div class="network-body-wrapper">
+                    <div id="network-container"></div>
+                    <div id="interactive-legend" class="interactive-legend">
+                        <select id="legend-select">
+                            <option value="BW25113 receptor">Receptor</option>
+                            <option value="BW25113 LPS sugar">LPS</option>
+                            <option value="Lifestyle">Lifestyle</option>
+                            <option value="Morphotype">Morphotype</option>
+                        </select>
+                        <div id="legend-items"></div>
+                    </div>
+                </div>
+
                 <div id="tooltip" class="tooltip"></div>
                 <div id="barseq-link-section">
                     <button id="barseq-link-btn" onclick="handleBarseqLinkClick()" title="Links out to a genome browser for BW25113 phage assays RB-TnSeq data">See RB-TnSeq data for a subset of these phages</button>
