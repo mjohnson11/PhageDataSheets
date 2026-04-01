@@ -64,15 +64,6 @@ function getFamilyColor(family) {
     return familyColors[family] || familyColors[''];
 }
 
-function seededRandom(seed) {
-    return function() {
-        seed |= 0; seed = seed + 0x6D2B79F5 | 0;
-        let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
-        t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
-        return ((t ^ t >>> 14) >>> 0) / 4294967296;
-    };
-}
-
 // Handlers for interaction
 function handleNodeMouseOver(event, d) {
     d3.select(this)
@@ -146,8 +137,8 @@ function initializeNetwork() {
     // Create nodes group
     const nodesGroup = g.append('g').attr('class', 'nodes');
 
-    // Seed initial node positions so simulation converges to the same layout every time
-    const rng = seededRandom(1);
+    // unseeded initial node positions so simulation has different layout each time
+    const rng = Math.random;
     networkData.nodes.forEach(d => {
         d.x = networkMargin.left + rng() * networkWidth;
         d.y = networkMargin.top + rng() * networkHeight;
