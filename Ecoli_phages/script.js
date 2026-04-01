@@ -1024,6 +1024,29 @@ function clearColumnFilter(column) {
     updateTableFilter();
 }
 
+function clearAllFilters() {
+    tableFilters = [];
+    selectedPhages.clear();
+    tableSearchText = '';
+    
+    // Reset search input UI
+    const searchInput = d3.select('#table-search-input');
+    if (!searchInput.empty()) searchInput.property('value', '');
+    
+    // Clear network brush UI
+    const brushGroup = d3.select('.brush');
+    if (!brushGroup.empty()) {
+        const brush = d3.brush();
+        brushGroup.call(brush.move, null);
+    }
+    
+    // Clear network node selected styling
+    d3.selectAll('.network_node').classed('selected', false);
+
+    updateFilterIndicators();
+    updateTableFilter();
+}
+
 function updateFilterIndicators() {
     const activeCols = new Set(tableFilters.map(f => f.column));
 
@@ -1075,6 +1098,11 @@ function updateTableFilter() {
             ? 'See RB-TnSeq data for selected phages'
             : 'See RB-TnSeq data for a subset of these phages'
         );
+    }
+
+    const clearFiltersBtn = d3.select('#clear-filters-btn');
+    if (!clearFiltersBtn.empty()) {
+        clearFiltersBtn.style('display', hasSubset ? 'block' : 'none');
     }
 
     // Announce filter results to screen readers

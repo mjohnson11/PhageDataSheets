@@ -9,7 +9,7 @@
     margin: 0 auto var(--spacing-xl);
     text-align: center;
     color: var(--text-primary);
-    font-size: 1.05rem;
+    font-size: 1.3rem;
     line-height: 1.8;
 }
 
@@ -22,9 +22,9 @@
 }
 
 .landing-card {
-    background-color: rgba(26, 26, 26, 0.5);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background-color: rgba(26, 26, 26, 0.8);
+    backdrop-filter: blur(1px);
+    -webkit-backdrop-filter: blur(1px);
     border: 1px solid var(--border-color);
     pointer-events: auto;
     border-radius: 8px;
@@ -183,39 +183,22 @@
 
 #buttons_and_network {
     position: relative;
-    display: grid;
-    grid-template-columns: 1fr;
-    align-items: start;
 }
 
 .landing-intro {
     pointer-events: auto;
 }
 
-.landing-cards {
-    grid-column: 1;
-    grid-row: 1;
-    /* Dynamically maps to the exact height of the network container map + 20px */
-    /* Container aspect ratio is 1200 / 800 = 1.5 => Height converges at 66.666% width */
-    margin-bottom: calc(min(66.67%, 800px) + 20px);
-    pointer-events: none;
-    z-index: 2;
-    justify-self: center;
-    width: 100%;
-}
-
 #network-container {
-    grid-column: 1;
-    grid-row: 1;
-    position: relative;
+    position: absolute;
     top: 0;
+    left: 50%;
+    transform: translateX(-50%);
     width: 100%;
     max-width: 1200px;
     aspect-ratio: 1200 / 800;
-    z-index: 1;
+    z-index: -1;
     opacity: 0.25;
-    transition: opacity 0.5s;
-    justify-self: center;
     pointer-events: auto;
 }
 

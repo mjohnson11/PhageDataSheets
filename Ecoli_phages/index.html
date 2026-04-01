@@ -99,31 +99,7 @@
             }
         });
 
-        // Handle network scroll reveal and opacity
-        window.addEventListener('scroll', () => {
-            const network = document.getElementById('network-container');
-            const wrapper = document.getElementById('buttons_and_network');
-            if (!network || !wrapper) return;
-            
-            const scrollDistance = window.scrollY;
-            const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-            
-            if (maxScroll > 0 && scrollDistance >= maxScroll - 10) {
-                network.style.opacity = '1';
-            } else {
-                network.style.opacity = '0.25';
-            }
 
-            // Smooth parallax-style tracking
-            let offset = window.scrollY;
-            const maxOffset = wrapper.offsetHeight - network.offsetHeight;
-            
-            // Allow bounds checking safely
-            if (maxOffset > 0) {
-                if (offset > maxOffset) offset = maxOffset;
-                network.style.transform = `translateY(${offset}px)`;
-            }
-        });
     </script>
     <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
     <script src="homepage_script.js"></script>
