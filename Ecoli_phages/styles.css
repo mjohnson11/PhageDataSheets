@@ -563,7 +563,7 @@ thead .sticky-col-2 {
    ============================================ */
 .popup-overlay {
     display: none;
-    position: fixed;
+    position: absolute;
     top: 0;
     left: 0;
     width: 100%;
@@ -1109,7 +1109,7 @@ thead .sticky-col-2 {
    COLUMN FILTER DROPDOWN
    ============================================ */
 .col-filter-dropdown {
-    position: fixed;
+    position: absolute;
     background: var(--bg-secondary);
     border: 1px solid var(--border-highlight);
     border-radius: 6px;

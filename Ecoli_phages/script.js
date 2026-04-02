@@ -36,6 +36,12 @@ let tableSort = { column: null, direction: 0 }; // 0=default, 1=asc, -1=desc
 let tableSearchText = '';
 let openFilterDropdownEl = null;
 
+// SVG dimensions for network
+const networkMargin = { top: 20, right: 20, bottom: 20, left: 20 };
+let networkWidth, networkHeight;
+
+let currentNetworkColorColumn = "BW25113 receptor";
+
 const manual_network_annotations = [
     {Text: "Dhillonvirus", x: -1220, y: 600, align_side: 'end'},
     {Text: "Ackermannviridae", x: 630, y: 140, align_side: 'middle'},
@@ -141,7 +147,7 @@ const networkColorMaps = {
     "Morphotype": morphotypeColors
 };
 
-let currentNetworkColorColumn = "BW25113 receptor";
+// NETWORK LEGEND FUNCTIONS 
 
 d3.select('#legend-select').on('change', function() {
     currentNetworkColorColumn = d3.select(this).property('value');
@@ -206,9 +212,6 @@ function updateLegendSelection() {
     });
 }
 
-// SVG dimensions for network
-const networkMargin = { top: 20, right: 20, bottom: 20, left: 20 };
-let networkWidth, networkHeight;
 
 // ============================================
 // DATA LOADING AND PROCESSING
@@ -227,16 +230,6 @@ async function loadData() {
         const dubseq_metadata = await d3.csv('./barseq_browser/data/Dubseq_sets.csv')
         dubseqPhages = new Set(dubseq_metadata.map((row) => row['phage']));
 
-        // Load network data
-        // const ntwResponse = await fetch('./data/c1_new.ntw');
-        // const ntwText = await ntwResponse.text();
-        // const rawNetworkData = parseNTW(ntwText);
-        
-        // // Filter network data to only include phages in the TSV
-        // const phageNames = new Set(phageData.map(d => d.Phage));
-        // const filteredLinks = rawNetworkData.filter(link => 
-        //     phageNames.has(link.source) && phageNames.has(link.target)
-        // );
         
         // We'll attach the new raw items to networkData so initializeNetwork can access them
         networkData.rawNodes = await d3.csv('./data/network_nodes.csv');
@@ -263,27 +256,6 @@ async function loadData() {
             id: d.Phage,
             data: d
         }));
-        
-        // old, trying to include everything, but then the simulation is super slow
-        /*
-        networkData.nodes = [...(new Set(rawNetworkData.map(link => link.source)))].map(function(d) {
-            const datum = { id: d}
-            const filt_metadata = phageData.filter(d2 => d2.Phage==d);
-            if (filt_metadata.length==1) {
-                datum.data = filt_metadata[0]
-            } else {
-                datum.data = null;
-            }
-            return datum
-        })
-        console.log(networkData.nodes)
-        */
-        
-        // networkData.links = filteredLinks.map(link => ({
-        //     source: link.source,
-        //     target: link.target,
-        //     weight: link.weight
-        // }));
         
         // Generate family colors
         generateFamilyColors();
@@ -332,16 +304,6 @@ function getFamilyColor(family) {
     return familyColors[family] || familyColors[''];
 }
 
-// Mulberry32 seeded PRNG — same seed → same layout every load
-function seededRandom(seed) {
-    return function() {
-        seed |= 0; seed = seed + 0x6D2B79F5 | 0;
-        let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
-        t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
-        return ((t ^ t >>> 14) >>> 0) / 4294967296;
-    };
-}
-
 function generateTaxonomyColors() {
     const columns = ['Family', 'Subfamily', 'Genus'];
     columns.forEach(col => {
@@ -360,6 +322,9 @@ function generateTaxonomyColors() {
 // NETWORK VISUALIZATION
 // ============================================
 function initializeNetwork() {
+    // Uses the network data to draw a network in gray on canvas
+    // Then draws the phages from the metadata file in svg on top
+
     const container = d3.select('#network-container');
     container.selectAll('*').remove();
     
@@ -400,58 +365,12 @@ function initializeNetwork() {
         .style('position', 'absolute')
         .style('top', '0')
         .style('left', '0');
-    
-    // Create legend for families with 2+ phages
-    const familyCounts = {};
-    phageData.forEach(d => {
-        if (d.Family) {
-            familyCounts[d.Family] = (familyCounts[d.Family] || 0) + 1;
-        }
-    });
-    
-    const legendFamilies = Object.entries(familyCounts)
-        .filter(([family, count]) => count >= 2)
-        .sort((a, b) => b[1] - a[1]) // Sort by count descending
-        .map(([family, count]) => family);
-    
-    const legend = svg.append('g')
-        .attr('class', 'legend')
-        .attr('transform', `translate(5, 5)`)
-        .style('display', 'none');
-
-    legend.append('text')
-        .attr('x', 0)
-        .attr('y', 0)
-        .style('font-size', '20px')
-        .style('font-weight', 'bold')
-        .style('fill', '#CCC')
-        .text('Family');
-
-    legendFamilies.forEach((family, i) => {
-        const legendRow = legend.append('g')
-            .attr('transform', `translate(0, ${22 + i * 22})`);
-
-        legendRow.append('circle')
-            .attr('cx', 6)
-            .attr('cy', 0)
-            .attr('r', 5)
-            .style('fill', getFamilyColor(family))
-            .style('stroke', '#1a1a1a')
-            .style('stroke-width', 1);
-
-        legendRow.append('text')
-            .attr('x', 16)
-            .attr('y', 4)
-            .style('font-size', '16px')
-            .style('fill', '#CCC')
-            .text(`${family} (${familyCounts[family]})`);
-    });
 
     const brush = d3.brush()
         .extent([[0, 0], [CANON_W, CANON_H]])
         .on('start brush', brushUpdate);
     
-    const brushGroup = svg.append('g')
+    svg.append('g')
         .attr('class', 'brush')
         .call(brush);
     
@@ -466,6 +385,7 @@ function initializeNetwork() {
         .domain(yExtent)
         .range([networkMargin.top, CANON_H - networkMargin.bottom]);
 
+    // coordsMap helps with quickly plotting edges on the canvas
     const coordsMap = {};
     networkData.rawNodes.forEach(d => {
         coordsMap[d.ID] = {
@@ -483,7 +403,8 @@ function initializeNetwork() {
         if(nameToCoords[n.id]) {
             n.x = nameToCoords[n.id].x;
             n.y = nameToCoords[n.id].y;
-        } else {
+        } else { 
+            // this applies to a few engineered phage that are in the table but not the network
             n.x = -100;
             n.y = -100;
         }
@@ -494,7 +415,7 @@ function initializeNetwork() {
     ctx.lineWidth = 1;
     ctx.globalAlpha = 0.5;
     ctx.beginPath();
-    // rawEdges map to rawNodes ID
+    // drawing edges
     networkData.rawEdges.forEach(edge => {
         const source = coordsMap[edge.source];
         const target = coordsMap[edge.target];
@@ -505,6 +426,7 @@ function initializeNetwork() {
     });
     ctx.stroke();
 
+    // drawing nodes
     ctx.fillStyle = '#777777';
     ctx.globalAlpha = 1.0;
     networkData.rawNodes.forEach(n => {
@@ -534,6 +456,7 @@ function initializeNetwork() {
         .on('mouseout', handleNodeMouseOut)
         .on('click', handleNodeClick);
 
+    // draw annotations on svg
     const annotationGroup = svg.append('g').attr('class', 'annotations');
     annotationGroup.selectAll('.network_annotation')
         .data(manual_network_annotations)
@@ -547,13 +470,6 @@ function initializeNetwork() {
         .attr('font-weight', 'bold')
         .attr('font-style', 'italic')
         .attr('text-anchor', d => d.align_side);
-    
-    // (Preserved legacy simulation code disabled here)
-    /*
-    const rng = seededRandom(1);
-    // ... rng and simulation init was here ... 
-    const simulation = d3.forceSimulation(networkData.nodes) ... 
-    */
     
     
     function brushUpdate(event) {
@@ -841,6 +757,7 @@ function initializeTable() {
 }
 
 function handleColumnSort(column) {
+    // Handles sort direction toggle-through
     if (tableSort.column === column) {
         if (tableSort.direction === 1)       { tableSort.direction = -1; }
         else if (tableSort.direction === -1) { tableSort.direction = 0; tableSort.column = null; }
@@ -907,8 +824,8 @@ function openColumnFilter(column, btnElement) {
         .attr('aria-label', 'Filter ' + column);
 
     // Position: keep on screen
-    const left = Math.min(rect.left, window.innerWidth - 270);
-    const top = rect.bottom + 4;
+    const left = Math.min(rect.left, window.innerWidth - 270) + window.scrollX;
+    const top = rect.bottom + 4 + window.scrollY;
     dropdown.style('left', left + 'px').style('top', top + 'px');
 
     openFilterDropdownEl = dropdown.node();
@@ -1009,9 +926,9 @@ function closeColumnFilter() {
 
 function setColumnFilter(column, values) {
     const idx = tableFilters.findIndex(f => f.column === column);
-    if (idx >= 0) {
+    if (idx >= 0) { // change existing column filter
         tableFilters[idx].values = new Set(values);
-    } else {
+    } else { // set new column filter
         tableFilters.push({ column, values: new Set(values) });
     }
     updateFilterIndicators();
@@ -1958,7 +1875,6 @@ function measure_text(string, fontSize = 10) {
 }
 
 async function loadGenome(p) {
-    console.log('loading genome for ', p);
 
     const container = d3.select('#genome-viewer');
     
@@ -1985,12 +1901,8 @@ async function loadGenome(p) {
           //excludeQualifiers: ['translation'],
         });
 
-        console.log('CGView JSON:', cgvJSON);
-
         const feats = cgvJSON.cgview.features;
         const genomeLen = cgvJSON.cgview.sequence.contigs[0].length;
-
-        console.log('Features:', feats);
 
         // D3 genome visualization
         const viewerDiv = document.querySelector('#genome-viewer');
@@ -2044,7 +1956,6 @@ async function loadGenome(p) {
 
         // Create color scale based on legend values
         
-        console.log('Legend values:', legendValues);
         const colorScale = d3.scaleOrdinal()
           .domain(legendValues)
           .range(d3.schemeCategory10);
@@ -2330,7 +2241,7 @@ function handleBarseqLinkClick() {
     if (phages.length < 21) {
         openBarseqBrowser(phages);
         return;
-    } else if (~hasSubset) {
+    } else if (!hasSubset) {
         openBarseqBrowser(null);
         return
     }
