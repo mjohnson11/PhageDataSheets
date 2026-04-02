@@ -33,6 +33,7 @@ class SimpleGenomeBrowser {
     this.orgId = orgId;
     this.circular = circular;
     this.w = w;
+    this.original_w = w; // stored for sidebar resize
     this.div = div;
     this.config = config;
     this.show_strain = config.show_strain ?? true;
@@ -43,14 +44,15 @@ class SimpleGenomeBrowser {
 
     // layout 
     this.layout = this.config.layout ?? {
-      'top': 35,
-      'controls_h': 150,
+      'top': 10,
+      'controls_h': 125,
       'x_buf': 40,
       'contig_axis_top': 35,
       'contig_zoom_bar_top': 35,
       'view_zoom_bar_top': 80,
       'track_axis_top': 80,
-      'sidebar_w': 300,
+      'sidebar_w': 380,
+      'outer_button_h': 30
     }
     this.layout.x_range = [this.layout.x_buf, w-this.layout.x_buf];
     this.midpoint = w / 2;
@@ -113,7 +115,7 @@ class SimpleGenomeBrowser {
     this.build_basic_browser();
     this.setup_tooltip();
     this.setup_sidebar();
-    this.make_search_bar();
+    if (this.config.sidebar_to_start) this.show_sidebar();
   }
 
   // making the browser
@@ -121,7 +123,19 @@ class SimpleGenomeBrowser {
   build_basic_browser() {
     const self = this;
 
-    self.outer_div = self.div.append('div')
+    self.sgb_outer_buttons = self.div.append('div')
+      .attr('class', 'sgb_controls_container')
+      .style('position', 'relative')
+      .style('width', self.w)
+      .style('margin', 5)
+      .style('z-index', 20)
+      .style('display', 'flex')
+      .style('justify-content', 'space-around')
+
+    self.sgb_outer_div = self.div.append('div')
+      .style('position', 'relative')
+
+    self.outer_div = self.sgb_outer_div.append('div')
       .attr('class', 'sgb_outer_div')
       .style('left', 0)
       .style('top', 0)
@@ -141,9 +155,10 @@ class SimpleGenomeBrowser {
 
     self.set_domain(self.starting_domain);
     self.saved_state = self.config.saved_state ?? {};
-    self.make_controls();
     self.setup_drag();
     self.make_contig_picker();
+    this.make_search_bar();
+    self.make_controls();
     self.display_region();
   }
 
@@ -153,10 +168,9 @@ class SimpleGenomeBrowser {
     self.icon_r = 10;
     self.icon_spacing = 20;
 
-    self.copy_link_btn = self.outer_div.append('button')
-      .style('position', 'absolute')
-      .style('left', self.midpoint + self.w/10)
-      .style('top', self.layout.top - 10)
+    self.copy_link_btn = self.sgb_outer_buttons.append('button')
+      .style('position', 'relative')
+      .style('width', Math.min(self.original_w/6, 300))
       .style('font-size', '16px')
       .html('Copy Link to Current View')
       .on('click', function() {
@@ -168,10 +182,9 @@ class SimpleGenomeBrowser {
         });
       });
 
-    self.outer_div.append('button')
-      .style('position', 'absolute')
-      .style('left', self.midpoint + self.w/4)
-      .style('top', self.layout.top - 10)
+    self.copy_dna_btn = self.sgb_outer_buttons.append('button')
+      .style('position', 'relative')
+      .style('width', Math.min(self.original_w/6, 300))
       .style('font-size', '16px')
       .html('Copy DNA Sequence of Region')
       .on('click', function() {
@@ -255,11 +268,8 @@ class SimpleGenomeBrowser {
 
   make_contig_picker() {
     const self = this;
-    self.contig_picker = self.outer_div.append('select')
+    self.contig_picker = self.sgb_outer_buttons.append('select')
       .attr('id', "contig_picker")
-      .style("position", "absolute")
-      .style("top", self.layout.top - 10)
-      .style("left", "50px")
       .style("width", "170px")
       .style("height", "25px")
       .style("outline", "none")
@@ -282,18 +292,15 @@ class SimpleGenomeBrowser {
 
   make_search_bar() {
     const self = this;
-    self.search_div = self.outer_div.append('div')
+    self.search_div = self.sgb_outer_buttons.append('div')
       .attr('id', 'search_div')
-      .style('position', 'absolute')
-      .style('left', self.w/3.7)
-      .style('top', self.layout.top - 10)
 
     self.gene_search = self.search_div.append('input')
       .attr('id', 'main_searchbar')
       .attr('type', 'search')
       .attr('spellcheck', 'false')
       .attr('autocomplete', 'off')
-      .style('width', 200)
+      .style('width', Math.min(self.original_w/6, 300))
       .style('height', 25)
       .style('font-size', 18)
       .on('focus', function () { d3.select(this).style('color', '#333')})
@@ -734,63 +741,82 @@ class SimpleGenomeBrowser {
   setup_sidebar() {
     const self = this;
     this.current_sidebar_width = this.layout.sidebar_w;
-    this.sidebar = this.outer_div.append('div')
+
+    // Sidebar div is appended to the parent div, anchored to the left edge
+    this.sidebar = this.sgb_outer_div.append('div')
       .attr('class', 'sgb_sidebar_div')
       .style("background-color", "#DDD")
       .style("width", 0)
       .style('position', 'absolute')
-      .style('top', self.layout.top-5)
-      .style('right', 0)
+      .style('left', 0)
+      .style('top', 0)
+      .style('height', '80vh')
+      .style('overflow-y', 'auto')
+      .style('overflow-x', 'hidden')
       .style('z-index', 12)
       .style('text-align', 'left')
+      .style('border-top-right-radius', '10px')
+      .style('border-bottom-right-radius', '10px')
       .on('mousedown', function(event) {
         event.stopPropagation();
       });
 
+    // Close button inside the sidebar (hidden when sidebar is closed)
+    this.sidebar_button = this.sidebar.append('button')
+      .style('font-size', '16px')
+      .html("x")
+      .style('position', 'absolute')
+      .style('top', 7)
+      .style('right', 7)
+      .style('display', 'none') // hidden initially
+      .style('z-index', 15)
+      .on('click', () => {
+        // Only hides the sidebar; opening is triggered by other UI actions
+        this.hide_sidebar();
+      });
+
+    // Give the parent div an explicit width so right:0 works
+    this.div.style('width', self.original_w + 'px');
+
     this.sidebar_content = this.sidebar.append('div')
       .attr('class', 'sidebar_content_div')
-      //.style('overflow-y', 'scroll')
-     
+
     this.sidebar_div = this.sidebar_content
       .append('div')
       .attr('class', 'sidebar-content-inner-div')
       .html('<h2>Click on a gene to see info here</h2>');
 
-    this.sidebar_button = this.sidebar.append('button')
-      .style('font-size', '16px')
-      .html("<")
-      .style('position', 'absolute')
-      .style('top', 5)
-      .style('right', 5)
-      .on('click', () => {
-        if (this.sidebar_expanded) {
-          this.hide_sidebar();
-        } else {
-          this.show_sidebar(null, this.layout.sidebar_w);
-        }
-      });
     this.sidebar_content
       .style('margin', 10)
       .style('display', 'none');
-
-    
   }
 
-  show_sidebar(html=null, sidebar_width=300) {
+  show_sidebar(html=null) {
+    // Force sidebar width to 380px regardless of argument
+    const forced_width = 380;
     if (html) this.sidebar_content.html(html);
-    this.current_sidebar_width = sidebar_width;
-    this.sidebar.style('width', sidebar_width);
-    this.sidebar_button.html(">");
-    
+    const needs_resize = !this.sidebar_expanded || this.current_sidebar_width !== forced_width;
+    this.current_sidebar_width = forced_width;
+    this.sidebar.style('width', forced_width + 'px').style('min-width', forced_width + 'px');
+    this.sidebar_button.style('display', 'block'); // show close button inside sidebar
     this.sidebar_content.style('display', 'block');
     this.sidebar_expanded = true;
+    // Shift the browser to the right of the sidebar and resize it
+    if (needs_resize) {
+      // Position the outer_div to start after the sidebar
+      this.outer_div.style('left', forced_width + 'px');
+      this.resize(this.original_w - forced_width);
+    }
   }
 
   hide_sidebar() {
-    this.sidebar.style('width', 0);
-    this.sidebar_button.html("<");
+    this.sidebar.style('width', '0px').style('min-width', '0px');
+    this.sidebar_button.style('display', 'none'); // hide close button
     this.sidebar_content.style('display', 'none');
     this.sidebar_expanded = false;
+    // Reset outer_div position and restore full width
+    this.outer_div.style('left', 0);
+    this.resize(this.original_w);
   }
 
   default_gene_tooltip_func(e, gene_object) {
@@ -873,6 +899,62 @@ class SimpleGenomeBrowser {
       'contig': contig,
       'domain': [left, right]
     });
+  }
+
+  resize(new_w) {
+    const self = this;
+    self.w = new_w;
+    self.display_w = new_w * 3;
+    self.display_left = -1 * new_w;
+    self.midpoint = new_w / 2;
+    self.layout.x_range = [self.layout.x_buf, new_w - self.layout.x_buf];
+
+    // Update outer/inner div widths
+    self.outer_div.style('width', new_w);
+    self.inner_div.style('width', new_w);
+
+    // Update controls SVG
+    self.controls_svg.attr('width', new_w);
+
+    // Zoom in icon: circle + horizontal line + vertical line
+    self.zoom_in_g.select('circle').attr('cx', self.midpoint + self.icon_spacing);
+    const zi_lines = self.zoom_in_g.selectAll('line').nodes();
+    // horizontal line
+    d3.select(zi_lines[0])
+      .attr('x1', self.midpoint + self.icon_spacing - self.icon_r / 2)
+      .attr('x2', self.midpoint + self.icon_spacing + self.icon_r / 2);
+    // vertical line
+    d3.select(zi_lines[1])
+      .attr('x1', self.midpoint + self.icon_spacing)
+      .attr('x2', self.midpoint + self.icon_spacing);
+
+    // Zoom out icon: circle + horizontal line
+    self.zoom_out_g.select('circle').attr('cx', self.midpoint - self.icon_spacing);
+    self.zoom_out_g.select('line')
+      .attr('x1', self.midpoint - self.icon_spacing - self.icon_r / 2)
+      .attr('x2', self.midpoint - self.icon_spacing + self.icon_r / 2);
+
+    // Update scales
+    self.x_scale.range(self.layout.x_range);
+    self.full_contig_x_scale.range(self.layout.x_range);
+
+    // Full contig zoom bar
+    self.full_contig_bg_rect
+      .attr('x', self.layout.x_range[0])
+      .attr('width', self.layout.x_range[1] - self.layout.x_range[0]);
+
+    // View zoom bar
+    self.view_zoom_bg_rect
+      .attr('x', self.layout.x_range[0])
+      .attr('width', self.layout.x_range[1] - self.layout.x_range[0]);
+
+    // Resize all tracks
+    for (let t of Object.values(self.tracks)) {
+      if (t.resize) t.resize();
+    }
+
+    // Re-render
+    self.display_region();
   }
 
 }

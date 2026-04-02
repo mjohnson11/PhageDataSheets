@@ -196,11 +196,15 @@ class customHeatmapTrack extends heatmapTrack {
 
     self.sgb.sidebar_div.selectAll('*').remove();
 
+    self.sgb.sidebar_div.append('div')
+      .attr('class', 'sidebar-title')
+      .html(`<h3 style="font-size: 24px; margin: 8px 0;">${col.name}</h3>`)
     // Add tabs
     const tabs = self.sgb.sidebar_div.append('div').attr('class', 'tabs');
     const sidebar_panels = {gene_hits: {class: 'gene_pm_content', title: 'Top Gene Hits'}, gene_compare: {class: 'gene_compare_content', title: 'Scatterplots'}};
     for (let sp of Object.keys(sidebar_panels)) {
       sidebar_panels[sp].button = tabs.append('button')
+        .style('font-size', 18)
         .text(sidebar_panels[sp].title)
         .on('click', function() {
           show_panel(sp, this);
@@ -213,7 +217,6 @@ class customHeatmapTrack extends heatmapTrack {
 
     pm_contentDiv.append('div')
       .attr('class', 'gene-table')
-      .html(`<h3 style="font-size: 14px; margin: 8px 0;">${col.name}</h3>`)
     
     const table = pm_contentDiv.select('.gene-table').append('table')
       .style('width', '350px') 
@@ -313,7 +316,8 @@ class customHeatmapTrack extends heatmapTrack {
 
     // Now making scatterplot div, which will not be displayed at first
     const compare_contentDiv = self.sgb.sidebar_div.append('div')
-      .attr('class', 'panel_content gene_compare_content');
+      .attr('class', 'panel_content gene_compare_content')
+      .style('display', 'none');
 
     // Select element for y-axis
     const select = compare_contentDiv.append('select')
@@ -582,14 +586,14 @@ async function load_browser(strain, contig, region, focal_col=null) {
   // Clear loading spinner
   b_div.html('');
 
-  const my_browser = new SimpleGenomeBrowser(strain, true, window.innerWidth - 20, b_div, {'fasta_file': fna, 'aa_file': faa, 'starting_contig': contig, 'starting_domain': region, show_strain: false, saved_state: initial_saved_state});
+  const my_browser = new SimpleGenomeBrowser(strain, true, window.innerWidth - 20, b_div, {'fasta_file': fna, 'aa_file': faa, 'starting_contig': contig, 'starting_domain': region, show_strain: false, sidebar_to_start: true, saved_state: initial_saved_state});
 
   my_browser.loadingPromise.then(sgb_instance => {
     const gtt = new customGeneTableTrack(sgb_instance, 'Gene Track', {load_threshold: 10000000}, gene_table_file);
     sgb_instance.add_track(gtt);
     const restored_focal = sgb_instance.saved_state.focal ?? focal_col;
     const restored_phages = sgb_instance.saved_state.phages ?? columns_to_start_with;
-    const cht = new customHeatmapTrack(sgb_instance, 'TnSeq Data Track', {focal_col: restored_focal, load_threshold: 10000000, current_columns: restored_phages, icols:icols, suffixes:['', '_half1', '_half2', '_T', '_num_filtered_insertions']}, prelim_all_column_config, 'scaffoldId', 'begin', 'end', 'locusId', c_scale, rbtnseq_data);
+    const cht = new customHeatmapTrack(sgb_instance, 'TnSeq Data Track', {focal_col: restored_focal, load_threshold: 10000000, current_columns: restored_phages, icols:icols, suffixes:['', '_half1', '_half2', '_T', '_num_filtered_insertions'], sidebar_onload:true}, prelim_all_column_config, 'scaffoldId', 'begin', 'end', 'locusId', c_scale, rbtnseq_data);
     cht.filter_by_strain_count = true; // custom property to filter genes by minimum insertion counts
     cht.filter_change_button = cht.add_controls_button('Filtering log2 fold-change data  : ON ',
       function() {

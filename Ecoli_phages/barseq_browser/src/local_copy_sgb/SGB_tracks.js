@@ -118,24 +118,27 @@ class baseTrack {
       .attr('class', 'track_title')
       .style('top', 0)
       .style('height', self.title_h-6)
-      .style('background-color', '#CCC')
       .style('color', 'black')
       .style('padding', 2)
       .style('margin', 1)
       .style('margin-right', 20)
       .style('padding-left', 6)
       .style('padding-right', 6)
-      .style('border-radius', '5px')
       .style('font-size', fontsize+'px')
       .style('text-align', 'center')
       .style('cursor', 'pointer')
       .style('z-index', 11)
+      //.style('background-color', '#EEE')   // lighter background
+      .style('border-radius', '0')          // no rounded edges
+      .style('border-bottom', '1px solid black')
       .text(title)
       .on('mouseover', () => {
         self.title_div.style('opacity', 0.8);
+        self.title_div.style('background-color', '#EEE');
       })
       .on('mouseout', () => {
         self.title_div.style('opacity', 1);
+        self.title_div.style('background-color', 'transparent');
       })
       .on('click', () => {
         if (self.expanded) {
@@ -169,10 +172,11 @@ class baseTrack {
       .style('padding-left', 6)
       .style('padding-right', 6)
       .style('border-radius', '5px')
+      .style('border', '1px solid #777')
       .style('font-size', Math.max(10, self.title_h-10) + 'px')
       .style('text-align', 'center')
       .style('cursor', 'pointer')
-      .style('background-color', '#CCC')
+      .style('background-color', '#EEE')
       .style('z-index', 11)
       .text(text)
       .on('mouseover', function() { d3.select(this).style('opacity', 0.8); })
@@ -290,6 +294,13 @@ class baseTrack {
         self.force_load_div.style('visibility', 'hidden');
       }
     }
+  }
+
+  resize() {
+    const self = this;
+    self.holding_div.style('width', self.sgb.display_w).style('left', -1 * self.sgb.w);
+    self.controls_div.style('left', self.sgb.w);
+    self.svg.attr('width', self.sgb.display_w);
   }
 
   remove_track() {
@@ -523,7 +534,8 @@ class quantitativeFeatureTrack extends baseFeatureTrack {
       .on('mouseout', () => self.handleMouseout())
       .on('click', (event) => self.handleClick(event));
 
-    self.reset_display();    
+    self.reset_display();
+        
   }
 
   reset_display() {
@@ -755,7 +767,8 @@ class quantitativeFeatureTrack extends baseFeatureTrack {
 
     // Now making scatterplot div, which will not be displayed at first
     const compare_contentDiv = self.sgb.sidebar_div.append('div')
-      .attr('class', 'panel_content gene_compare_content');
+      .attr('class', 'panel_content gene_compare_content')
+      .style('display', 'none');
 
     // Select element for y-axis
     const select = compare_contentDiv.append('select')
@@ -918,6 +931,12 @@ class quantitativeFeatureTrack extends baseFeatureTrack {
   filter_datum(d, column) {
     // default filter function, can be replaced in extending classes
     return true;
+  }
+
+  resize() {
+    super.resize();
+    this.canvas.attr('width', this.sgb.display_w);
+    this.row_title_div.style('left', this.sgb.w);
   }
 
   handleMousemove(event) {
@@ -1125,6 +1144,23 @@ class quantitativeYaxesTrack extends baseTrack {
       .on('mousemove', (event) => self.handleMousemove(event))
       .on('mouseout', () => self.handleMouseout())
       .on('click', (event) => self.handleClick(event));
+  }
+
+  resize() {
+    super.resize();
+    this.canvas.attr('width', this.sgb.display_w);
+    // Update y-axis lines to span new width
+    this.svg.selectAll('.yline').attr('x2', this.sgb.display_w);
+    // Update axis elements if they exist
+    if (this.axis_elements) {
+      this.axis_elements.select('rect')
+        .attr('x', this.sgb.w)
+        .attr('width', this.left_buf);
+      this.axis_elements.select('.yaxis')
+        .attr('transform', `translate(${this.sgb.w + this.left_buf},0)`);
+      this.axis_elements.select('.countPlotTitle')
+        .attr('x', this.sgb.display_w / 2);
+    }
   }
 
   async load_region() {

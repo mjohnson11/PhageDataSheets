@@ -196,6 +196,7 @@ class heatmapTrack extends quantitativeFeatureTrack {
     self.suffixes = config.suffixes ?? [''];
     self.include_halfs = self.suffixes.includes('_half1') && self.suffixes.includes('_half2');
     self.icols = config.icols ?? ['locusId', 'sysName', 'scaffoldId', 'begin', 'end', 'strand', 'name', 'desc'];
+    self.sidebar_onload = config.sidebar_onload ?? true;
 
     self.loadingPromise = new Promise((resolve, reject) => {
       const dataPromise = (typeof data_file_or_object === 'object')
@@ -207,6 +208,8 @@ class heatmapTrack extends quantitativeFeatureTrack {
         self.data = new staticFeatureData(self.sgb, self.data_name, null, config); // data to be set below
         self.update_data_by_column_config();
         self.display_region();
+        const full_focal_col = self.column_config.filter((c) => c.name == self.focal_col)[0]
+        if (self.sidebar_onload) self.make_summary_sidebar(full_focal_col);
         resolve(self);
       }).catch(reject);
     });

@@ -1,81 +1,127 @@
-  body {
-    font-family: Garamond, Georgia, 'Times New Roman', serif;
-    text-align: center;
-    margin: 0;
-  }
+/* ============================================
+  SITE HEADER
+  ============================================ */
 
-  h1 {
-    margin: 20px 0;
-    margin-top: 40px;
-  }
+.site-header {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    padding: 12px 20px;
+    gap: 16px;
+}
 
-  #toggle_about_btn {
-    position: relative;
-    left: 0px;
-    padding: 4px 8px;
-    font-family: Garamond, Georgia, 'Times New Roman', serif;
-    font-size: 1.2em;
-    background-color: white;
-    color: black;
-    border: 1px solid #ccc;
-    border-radius: 3px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    display: inline-block
-  }
+.site-header .main-title {
+    margin-bottom: 0;
+    white-space: nowrap;
+}
 
-  #toggle_about_btn:hover {
-    background-color: #f5f5f5;
-  }
+.site-header #acknowledgment_box {
+    justify-self: end;
+}
 
-  #about_text {
-    font-size: 1.25em;
-    max-width: 1400px;
-    margin: 20px auto;
-    line-height: 1.4;
-    text-align: left;
-  }
+@media (max-width: 768px) {
+    .site-header {
+        grid-template-columns: auto 1fr;
+        justify-items: center;
+    }
 
-  #home_logo {
-    position: absolute;
-    top: 20px;
-    left: 20px;
+    .site-header .main-title {
+        grid-column: 1 / -1;
+        white-space: normal;
+    }
+
+    .site-header #acknowledgment_box {
+        justify-self: end;
+    }
+}
+
+#home_logo {
     width: 60px;
     height: 60px;
+    flex-shrink: 0;
     cursor: pointer;
-  }
+}
 
-  #acknowledgment_box {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    background: white;
-    border: 2px solid #ddd;
+#home_logo img {
+    width: 100%;
+    height: 100%;
+}
+
+#acknowledgment_box {
+    background: var(--bg-primary);
     border-radius: 8px;
     padding: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     text-align: center;
     max-width: 400px;
-  }
+}
 
-  #acknowledgment_box p {
-    margin: 0 0 10px 0;
+#acknowledgment_box p {
+    margin: 0px;
     font-size: 14px;
     font-weight: bold;
-  }
+}
 
-  .funding_logos {
+.funding_logos {
     display: flex;
     justify-content: center;
     align-items: center;
     gap: 15px;
     flex-wrap: wrap;
-  }
+}
 
-  .funding_logos img {
-    height: 60px;
+.funding_logos img {
+    height: 50px;
     width: auto;
-  }
-  .collapsed {
-    display: none;
-  }
+}
+
+.main-title {
+    font-size: 2.2rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+}
+
+/* OTHER */
+  
+body {
+  font-family: Garamond, Georgia, 'Times New Roman', serif;
+  text-align: center;
+  margin: 0;
+}
+
+h1 {
+  margin: 20px 0;
+  margin-top: 40px;
+}
+
+#toggle_about_btn {
+  position: relative;
+  left: 0px;
+  padding: 4px 8px;
+  font-family: Garamond, Georgia, 'Times New Roman', serif;
+  font-size: 1.2em;
+  background-color: white;
+  color: black;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  display: inline-block
+}
+
+#toggle_about_btn:hover {
+  background-color: #f5f5f5;
+}
+
+#about_text {
+  font-size: 1.25em;
+  max-width: 1400px;
+  margin: 20px auto;
+  line-height: 1.4;
+  text-align: left;
+  padding: 10px;
+}
+
+.collapsed {
+  display: none;
+}

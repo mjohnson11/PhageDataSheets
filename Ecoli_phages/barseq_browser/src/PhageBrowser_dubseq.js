@@ -211,11 +211,15 @@ class customHeatmapTrack extends heatmapTrack {
 
     self.sgb.sidebar_div.selectAll('*').remove();
 
+    self.sgb.sidebar_div.append('div')
+      .attr('class', 'sidebar-title')
+      .html(`<h3 style="font-size: 24px; margin: 8px 0;">${col.name}</h3>`)
     // Add tabs
     const tabs = self.sgb.sidebar_div.append('div').attr('class', 'tabs');
     const sidebar_panels = {gene_hits: {class: 'gene_pm_content', title: 'Top Gene Hits'}, gene_compare: {class: 'gene_compare_content', title: 'Scatterplots'}};
     for (let sp of Object.keys(sidebar_panels)) {
       sidebar_panels[sp].button = tabs.append('button')
+        .style('font-size', 18)
         .text(sidebar_panels[sp].title)
         .on('click', function() {
           show_panel(sp, this);
@@ -588,7 +592,7 @@ async function load_browser(strain, contig, region, focal_col=null) {
   // Clear loading spinner
   b_div.html('');
 
-  const my_browser = new SimpleGenomeBrowser(strain, true, window.innerWidth - 20, b_div, {'fasta_file': fna, 'aa_file': faa, 'starting_contig': contig, 'starting_domain': region, show_strain: false, saved_state: initial_saved_state});
+  const my_browser = new SimpleGenomeBrowser(strain, true, window.innerWidth - 20, b_div, {'fasta_file': fna, 'aa_file': faa, 'starting_contig': contig, 'starting_domain': region, show_strain: false, sidebar_to_start: true, saved_state: initial_saved_state});
 
   my_browser.loadingPromise.then(sgb_instance => {
     const gtt = new customGeneTableTrack(sgb_instance, 'Gene Track', {load_threshold: 10000000}, gene_table_file);
