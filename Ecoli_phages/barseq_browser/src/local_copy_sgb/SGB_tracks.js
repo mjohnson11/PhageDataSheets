@@ -380,7 +380,7 @@ class geneTrack extends baseFeatureTrack {
         .on('mouseover', (e, d) => {
           self.hover_function(e, d, self);
         })
-        .on('mousemove', (e) => self.sgb.move_tooltip(e.x, e.y))
+        .on('mousemove', (e) => self.sgb.move_tooltip(e.pageX, e.pageY))
         .on('mouseout', () => self.sgb.hide_tooltip())
         .html(function(d) { return self.make_gene_display(d); })
         .on('click', (e, d) => {

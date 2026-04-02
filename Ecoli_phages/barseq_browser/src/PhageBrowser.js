@@ -165,7 +165,7 @@ class customHeatmapTrack extends heatmapTrack {
       
       self.sgb.tooltip.selectAll('*').remove();
       self.sgb.tooltip.html(html);
-      self.sgb.show_tooltip(e.x, e.y)
+      self.sgb.show_tooltip(e.pageX, e.pageY)
     }
   }
 

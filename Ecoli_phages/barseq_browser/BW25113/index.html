@@ -25,9 +25,9 @@
 
   <h1>Genome Browser For <i>E. coli BW25113</i> x Phage <br />RB-TnSeq Data</h1>
   
-  <button id="toggle_about_btn" onclick="toggleAbout()">^ Hide About Text ^</button>
+  <button id="toggle_about_btn" onclick="toggleAbout()">About this browser</button>
   
-  <div id="about_text">
+  <div id="about_text" class="collapsed">
     This genome browser shows the effects of gene knockouts on phage susceptibility in <i>E. coli</i> strain BW25113, using data from experiments in which an RB-TnSeq library was challenged with various phage. For many of these assays, knockouts of receptor genes had an enormous fitness benefit (because they survived infection), so in these cases there are very few genes with fitnesses measured after filtering (which is why much of the heatmap may be blank). To see the top and bottom hits for each phage, click on its name on the left. To change the set of phage displayed, remove the data filtering step (note this will result in many spurious log-2-fold change values), or show the underlying barcode count and fitness data, click the buttons above the heatmap track. Hover over any gene or fitness measurement for more information, and click to see more information about that gene.
   </div>
     

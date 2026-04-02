@@ -807,7 +807,7 @@ class SimpleGenomeBrowser {
       
       this.tooltip.selectAll('*').remove();
       this.tooltip.html(html);
-      this.show_tooltip(e.x, e.y)
+      this.show_tooltip(e.pageX, e.pageY)
     }
   }
 
