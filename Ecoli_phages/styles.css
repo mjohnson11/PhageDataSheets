@@ -129,6 +129,15 @@ body {
     overflow-x: hidden;
 }
 
+a {
+    color: var(--accent-primary);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
 /* ============================================
    ACCESSIBILITY
    ============================================ */
