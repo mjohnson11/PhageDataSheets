@@ -85,7 +85,7 @@ const receptorColors = {
   BtuB: "#215fa8",
   LptD: "#8c97c6",
   LamB: "#fb6b4b",
-  NGR: "#ffc450"SW
+  NGR: "#ffc450"
 };
 
 const lpsColors = {
@@ -107,7 +107,8 @@ const morphotypeColors = {
     'Podovirus': '#9ecae1'
 };
 */
-const receptorColors = {
+
+/*const receptorColors = {
   Tsx: seaborn_cb_palette[0],
   OmpF: seaborn_cb_palette[1],
   OmpA: seaborn_cb_palette[2],
@@ -127,6 +128,29 @@ const lpsColors = {
     GluI: seaborn_cb_palette[3],
     Resistant: '#555'
 }
+*/
+
+const receptorColors = {
+  Tsx: '#FDD49E',
+  OmpF: '#005A32',
+  OmpA: '#41AB5D',
+  OmpC: '#99D8C9',
+  FhuA: '#DF65B0',
+  BtuB: '#225EA8',
+  LptD: '#8C96C6',
+  LamB: '#FB6A4A',
+  NGR: '#FEC44F',
+  Resistant: '#555'
+}
+
+const lpsColors = {
+    Kdo: '#FE9929',
+    HepI: '#E7298A',
+    HepII: '#4292C6',
+    GluI: '#41AB5D',
+    Resistant: '#555'
+}
+
 
 const lifestyleColors = {
     'lytic': seaborn_cb_palette[0],
