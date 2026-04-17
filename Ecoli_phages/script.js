@@ -153,15 +153,14 @@ const lpsColors = {
 
 
 const lifestyleColors = {
-    'lytic': seaborn_cb_palette[0],
-    'temperate/lytic': seaborn_cb_palette[1],
-    'temperate': seaborn_cb_palette[2]
+    'virulent': seaborn_cb_palette[0],
+    'temperate': seaborn_cb_palette[1]
 };
 
 const morphotypeColors = {
-    'Myovirus': seaborn_cb_palette[0],
-    'Siphovirus': seaborn_cb_palette[1],
-    'Podovirus': seaborn_cb_palette[2]
+    'Myovirus': seaborn_cb_palette[3],
+    'Siphovirus': seaborn_cb_palette[4],
+    'Podovirus': seaborn_cb_palette[7]
 };
 
 const networkColorMaps = {
