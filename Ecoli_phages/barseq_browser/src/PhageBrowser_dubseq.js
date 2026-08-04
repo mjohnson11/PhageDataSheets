@@ -13,7 +13,7 @@ import { SimpleGenomeBrowser, serverPointData, serverFeatureData } from "./local
 import { geneTableTrack, heatmapTrack } from "./local_copy_sgb/data_tracks.js";
 import { quantitativePointTrack, quantitativeLineTrack } from "./local_copy_sgb/SGB_tracks.js";
 
-const development_mode = 'localdev'; //'production'; // 'localdev'; //'development';
+const development_mode = 'production'; // 'localdev'; //'development';
 
 const ECOCYC_ids = {'Keio': 'ECOLI', 'BL21': 'GCF_000022665'};
 
