@@ -2,7 +2,7 @@
 // They must define a param data_name during the synchronous part of the constructor
 
 import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
-import * as aq from 'https://cdn.jsdelivr.net/npm/arquero@7.2.0/dist/arquero.min.js/+esm';
+import * as aq from 'https://cdn.jsdelivr.net/npm/arquero@8.0.3/+esm';
 
 import { geneTrack, quantitativeFeatureTrack } from "./SGB_tracks.js";
 import { staticFeatureData, staticPointData } from "./SimpleGenomeBrowser.js";

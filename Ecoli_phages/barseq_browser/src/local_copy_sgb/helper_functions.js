@@ -1,7 +1,7 @@
 // Helper functions for displaying things in the SGB browser that are not general enough
 // for the main SimpleGenomeBrowser codebase
 
-import * as aq from 'https://cdn.jsdelivr.net/npm/arquero@7.2.0/dist/arquero.min.js/+esm';
+import * as aq from 'https://cdn.jsdelivr.net/npm/arquero@8.0.3/+esm';
 import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
 import Sortable, { MultiDrag} from 'https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/modular/sortable.esm.js';
 Sortable.mount(new MultiDrag());
