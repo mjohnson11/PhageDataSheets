@@ -1,6 +1,6 @@
 import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
 import autoComplete from 'https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@10.2.7/dist/autoComplete.min.js/+esm'; 
-import { fetch_server_data, parse_fasta, measure_text, reverse_complement, copy_sequence } from "./util.js";
+import { fetch_server_data, parse_fasta, measure_text, reverse_complement, copy_sequence } from "./util.js?v=2";
 
 
 class SimpleGenomeBrowser {

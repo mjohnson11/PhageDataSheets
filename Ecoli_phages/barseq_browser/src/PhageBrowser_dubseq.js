@@ -1,6 +1,6 @@
 import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
 import * as aq from 'https://cdn.jsdelivr.net/npm/arquero@8.0.3/+esm';
-import { sidebar_morgan_info } from "./local_copy_sgb/helper_functions.js";
+import { sidebar_morgan_info } from "./local_copy_sgb/helper_functions.js?v=2";
 
 /*
 import { SimpleGenomeBrowser } from "https://cdn.jsdelivr.net/npm/simple-genome-browser@1.0.2/src/SimpleGenomeBrowser.js";
@@ -9,9 +9,9 @@ import { quantitativeFeatureTrack, quantitativeLineTrack, quantitativePointTrack
 import { reverse_complement, copy_sequence } from "https://cdn.jsdelivr.net/npm/simple-genome-browser@1.0.2/src/util.js";
 */
 
-import { SimpleGenomeBrowser, serverPointData, serverFeatureData } from "./local_copy_sgb/SimpleGenomeBrowser.js";
-import { geneTableTrack, heatmapTrack } from "./local_copy_sgb/data_tracks.js";
-import { quantitativePointTrack, quantitativeLineTrack } from "./local_copy_sgb/SGB_tracks.js";
+import { SimpleGenomeBrowser, serverPointData, serverFeatureData } from "./local_copy_sgb/SimpleGenomeBrowser.js?v=2";
+import { geneTableTrack, heatmapTrack } from "./local_copy_sgb/data_tracks.js?v=2";
+import { quantitativePointTrack, quantitativeLineTrack } from "./local_copy_sgb/SGB_tracks.js?v=2";
 
 const development_mode = 'production'; // 'localdev'; //'development';
 

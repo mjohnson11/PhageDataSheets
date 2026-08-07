@@ -4,9 +4,9 @@
 import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
 import * as aq from 'https://cdn.jsdelivr.net/npm/arquero@8.0.3/+esm';
 
-import { geneTrack, quantitativeFeatureTrack } from "./SGB_tracks.js";
-import { staticFeatureData, staticPointData } from "./SimpleGenomeBrowser.js";
-import { open_column_selector, data_shaper } from "./helper_functions.js";
+import { geneTrack, quantitativeFeatureTrack } from "./SGB_tracks.js?v=2";
+import { staticFeatureData, staticPointData } from "./SimpleGenomeBrowser.js?v=2";
+import { open_column_selector, data_shaper } from "./helper_functions.js?v=2";
 
 class gffTrack extends geneTrack {
   /**

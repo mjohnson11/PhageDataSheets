@@ -7,9 +7,9 @@
 
 import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
 import * as aq from 'https://cdn.jsdelivr.net/npm/arquero@8.0.3/+esm';
-import { SimpleGenomeBrowser } from "./SimpleGenomeBrowser.js";
-import { measure_text } from "./util.js";
-import { nice_logcount_scale } from "./helper_functions.js"
+import { SimpleGenomeBrowser } from "./SimpleGenomeBrowser.js?v=2";
+import { measure_text } from "./util.js?v=2";
+import { nice_logcount_scale } from "./helper_functions.js?v=2"
 
 class baseTrack {
   /**
