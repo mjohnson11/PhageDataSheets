@@ -242,7 +242,7 @@ function updateLegendSelection() {
 async function loadData() {
     try {
         // Load TSV metadata
-        phageData = await d3.tsv('./data/Table_S1_Phages.tsv');
+        phageData = await d3.tsv('./data/Table_S1_updated.tsv');
         
         // Load EOP data
         eopData = await d3.csv('./data/KEIO_EOP_reformatted.csv');
@@ -1739,16 +1739,24 @@ function populateCustomInfo(data) {
     }
 }
 
+const afModelExplanations = {
+  'predicted': 'AlphaFold3 model is available and displays expected protein-protein directionality',
+  'inconsistent: directionality': 'AlphaFold3 model displays inconsistent protein-protein directionality',
+  'inconsistent: long tail fiber folding': 'AlphaFold3 model displays an inconsistent trimeric long tail fiber protein folding.',
+  'unavailable: polysaccharide receptor': 'AlphaFold3 model could not be generated because the host receptor is a polysaccharide.',
+  'unavailable: unknown receptor/RBP': 'AlphaFold3 model could not be generated because the host receptor and/or the phage RBP are unknown.',
+  'unavailable: out-of-memory error': 'AlphaFold3 model could not be generated due to an out-of-memory error.'
+};
+
 async function loadStructure(p) {
 
   d3.select('#structure-div').selectAll('*').remove();
 
-  const afModel = p['AF3 model'];
+  const afModel = p['AF3 model'] || '';
+  const reason = afModel.includes(':') ? afModel.split(':')[1].trim() : afModel;
+  const explanation = afModelExplanations[afModel] || '';
 
-  if (afModel === 'failed' || afModel === 'impossible') {
-    const message = afModel === 'failed'
-      ? 'AlphaFold3 model failed'
-      : 'AlphaFold3 model impossible (no receptor-RBD pair to work with)';
+  if (!afModel || afModel.startsWith('unavailable')) {
     d3.select('#structure_title_text').style('display', 'none');
     d3.select('#popup-content').style('height', 'auto');
     d3.select('#structure-div')
@@ -1756,9 +1764,8 @@ async function loadStructure(p) {
       .style('min-height', null)
       .style('padding', '12px')
       .append('p')
-        .text(message)
-        .style('color', 'var(--text-secondary)')
-        .style('font-style', 'italic')
+        .html(`<strong>Unavailable model: ${reason}</strong><br><span style="font-size: 0.95em; color: var(--text-secondary); display: inline-block; margin-top: 4px;">${explanation || 'AlphaFold3 model could not be generated.'}</span>`)
+        .style('color', 'var(--text-primary)')
         .style('margin', '0');
     return;
   }
@@ -1769,21 +1776,18 @@ async function loadStructure(p) {
 
   // 2 cases with two receptors, but only the first ones
   // have good structures
-  const receptor = p['BW25113 receptor'].split(';')[0]
-  const rbp = p['Receptor-binding protein'].split(';')[0]
+  const receptor = p['BW25113 receptor'].split(';')[0];
+  const rbp = p['Receptor-binding protein'].split(';')[0];
 
-  const url = `./data/AlphaFold_models/fold_${receptor.toLowerCase()}_${p.Phage.toLowerCase()}_model_0.cif`;
+  const url = `./data/AlphaFold_models/fold_${receptor.toLowerCase()}_${p.Phage.toLowerCase()}_model_0_renamed.cif`;
   const json_url = `./data/AlphaFold_models/fold_${receptor.toLowerCase()}_${p.Phage.toLowerCase()}_summary_confidences_0.json`;
 
-  if (afModel.split(';')[0] == 'sound') {
+  if (afModel.startsWith('inconsistent')) {
     d3.select('#structure_title_text')
-        .text(`Predicted Structure of ${p.Phage} RBP (${rbp}) binding to ${receptor}`)
-  } else if (afModel.split(';')[0] == 'incoherent') {
-    d3.select('#structure_title_text')
-        .html(`Predicted Structure of ${p.Phage} RBP (${rbp}) binding to ${receptor} <span class="incoherent_model_warning">(WARNING: model is incoherent)</span>`)
+        .html(`Predicted Structure of ${p.Phage} RBP (${rbp}) binding to ${receptor}<br><span class="incoherent_model_warning" style="display: inline-block; margin-top: 6px; font-size: 0.85em; font-weight: normal;">Inconsistent model: ${reason}<br><span style="font-size: 0.95em; color: var(--text-secondary); display: inline-block; margin-top: 2px;">${explanation}</span></span>`);
   } else {
     d3.select('#structure_title_text')
-        .text(`Predicted Structure of ${p.Phage} RBP (${rbp}) binding to ${receptor} (model soundness not specified)`)
+        .text(`Predicted Structure of ${p.Phage} RBP (${rbp}) binding to ${receptor}`);
   }
   
   const color_key = d3.select('#structure-div').append('div');
@@ -1860,6 +1864,19 @@ async function loadStructure(p) {
     .style('margin-top', '8px')
     .style('display', 'inline-block');
 
+  color_key.append('a')
+    .attr('href', '#')
+    .text('Download model confidence metrics (including ipSAE)')
+    .style('font-size', '14px')
+    .style('color', 'var(--link-color)')
+    .style('margin-top', '6px')
+    .style('display', 'block')
+    .style('cursor', 'pointer')
+    .on('click', function(event) {
+      event.preventDefault();
+      openMetricsDownloadPopup(url);
+    });
+
   const color = '#333'
 
   const container = d3.select('#structure-div').append('div')
@@ -1883,7 +1900,86 @@ async function loadStructure(p) {
   
   // Call render method to display the 3D view
   viewerInstance.render(container.node(), options);
-  
+  console.log(viewerInstance.plugin.managers.structure.hierarchy.current.structures);
+}
+
+function openMetricsDownloadPopup(cifUrl) {
+  d3.select('#metrics-download-popup-overlay').remove();
+
+  const overlay = d3.select('body').append('div')
+    .attr('id', 'metrics-download-popup-overlay')
+    .style('position', 'fixed')
+    .style('top', '0')
+    .style('left', '0')
+    .style('width', '100%')
+    .style('height', '100%')
+    .style('background', 'rgba(0, 0, 0, 0.65)')
+    .style('z-index', '20000')
+    .style('display', 'flex')
+    .style('align-items', 'center')
+    .style('justify-content', 'center')
+    .on('click', function(event) {
+      if (event.target === this) overlay.remove();
+    });
+
+  const box = overlay.append('div')
+    .style('background', '#222')
+    .style('border', '1px solid #444')
+    .style('border-radius', '8px')
+    .style('padding', '20px 24px')
+    .style('max-width', '420px')
+    .style('width', '90%')
+    .style('box-shadow', '0 10px 30px rgba(0,0,0,0.6)')
+    .style('color', '#e0e0e0');
+
+  const header = box.append('div')
+    .style('display', 'flex')
+    .style('justify-content', 'space-between')
+    .style('align-items', 'center')
+    .style('margin-bottom', '16px');
+
+  header.append('h3')
+    .style('margin', '0')
+    .style('font-size', '16px')
+    .style('color', '#fff')
+    .text('Download Model Confidence Metrics');
+
+  header.append('button')
+    .style('background', 'none')
+    .style('border', 'none')
+    .style('color', '#aaa')
+    .style('font-size', '22px')
+    .style('cursor', 'pointer')
+    .style('line-height', '1')
+    .style('padding', '0 4px')
+    .html('&times;')
+    .on('click', () => overlay.remove());
+
+  const list = box.append('div')
+    .style('display', 'flex')
+    .style('flex-direction', 'column')
+    .style('gap', '10px');
+
+  const chainUrl = cifUrl.replace(/(_renamed)?\.cif$/, '_10_10.txt');
+  const resUrl = cifUrl.replace(/(_renamed)?\.cif$/, '_10_10_byres.txt');
+
+  const linkStyle = 'display: block; padding: 10px 14px; background: #333; color: #4a9eff; text-decoration: none; border-radius: 6px; border: 1px solid #444; font-size: 14px; font-weight: 500; transition: background 0.2s;';
+
+  const a1 = list.append('a')
+    .attr('href', chainUrl)
+    .attr('download', '')
+    .attr('style', linkStyle)
+    .text('⬇ Chain by chain metrics');
+  a1.on('mouseover', function() { d3.select(this).style('background', '#3d3d3d'); })
+    .on('mouseout', function() { d3.select(this).style('background', '#333'); });
+
+  const a2 = list.append('a')
+    .attr('href', resUrl)
+    .attr('download', '')
+    .attr('style', linkStyle)
+    .text('⬇ Residue by residue metrics');
+  a2.on('mouseover', function() { d3.select(this).style('background', '#3d3d3d'); })
+    .on('mouseout', function() { d3.select(this).style('background', '#333'); });
 }
 
 // https://gist.github.com/tophtucker/62f93a4658387bb61e4510c37e2e97cf
@@ -1898,6 +1994,24 @@ function measure_text(string, fontSize = 10) {
 }
 
 async function loadGenome(p) {
+
+    // Update GenomeDepot link and NCBI accession next to Genome header
+    const gdLink = d3.select('#genomedepot-link');
+    if (!gdLink.empty()) {
+        gdLink.attr('href', `https://iseq.lbl.gov/ecoliphages/genome/${encodeURIComponent(p.Phage)}/`);
+    }
+
+    const accContainer = d3.select('#genome-accession-container');
+    if (!accContainer.empty()) {
+        const acc = p['Genome accesion'];
+        if (acc && acc !== 'in submission') {
+            accContainer.html(`Accesion: <a href="https://www.ncbi.nlm.nih.gov/nuccore/${encodeURIComponent(acc)}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-primary); text-decoration: underline;">${acc}</a>`);
+        } else if (acc) {
+            accContainer.text(`Accesion: ${acc}`);
+        } else {
+            accContainer.text('');
+        }
+    }
 
     const container = d3.select('#genome-viewer');
     

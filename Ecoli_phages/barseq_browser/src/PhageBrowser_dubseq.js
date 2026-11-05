@@ -1,17 +1,89 @@
 import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
 import * as aq from 'https://cdn.jsdelivr.net/npm/arquero@8.0.3/+esm';
-import { sidebar_morgan_info } from "./local_copy_sgb/helper_functions.js?v=2";
+import {
+  SimpleGenomeBrowser,
+  load_fasta,
+  staticParquetPointData,
+  staticParquetFeatureData,
+  geneTableTrack,
+  heatmapTrack,
+  quantitativePointTrack,
+  quantitativeLineTrack
+} from "./SimpleGenomeBrowser/index.js";
 
-/*
-import { SimpleGenomeBrowser } from "https://cdn.jsdelivr.net/npm/simple-genome-browser@1.0.2/src/SimpleGenomeBrowser.js";
-import { geneTableTrack, gffTrack, heatmapTrack } from "https://cdn.jsdelivr.net/npm/simple-genome-browser@1.0.2/src/data_tracks.js";
-import { quantitativeFeatureTrack, quantitativeLineTrack, quantitativePointTrack } from "https://cdn.jsdelivr.net/npm/simple-genome-browser@1.0.2/src/SGB_tracks.js";
-import { reverse_complement, copy_sequence } from "https://cdn.jsdelivr.net/npm/simple-genome-browser@1.0.2/src/util.js";
-*/
+function copy_sequence(sequence, button = null) {
+  navigator.clipboard.writeText(sequence);
+  if (button) {
+    const original_text = button.innerHTML;
+    button.innerHTML = "Copied!";
+    setTimeout(() => {
+      button.innerHTML = original_text;
+    }, 1000);
+  }
+}
 
-import { SimpleGenomeBrowser, serverPointData, serverFeatureData } from "./local_copy_sgb/SimpleGenomeBrowser.js?v=2";
-import { geneTableTrack, heatmapTrack } from "./local_copy_sgb/data_tracks.js?v=2";
-import { quantitativePointTrack, quantitativeLineTrack } from "./local_copy_sgb/SGB_tracks.js?v=2";
+function sidebar_morgan_info(sgb, gene_object, orgId = null) {
+  if (gene_object) {
+    const { locusId, name, desc, begin, end, strand, scaffoldId, pseudo } = gene_object;
+    const effective_orgId = orgId || sgb.config?.orgId || sgb.orgId || sgb.title || null;
+
+    sgb.sidebar_div.append('p')
+        .attr('class', 'sidebar_title')
+        .style('margin-bottom', '5px')
+        .html(`<strong>${name}</strong>`);
+
+    sgb.sidebar_div.append('hr')
+      .style('border-top', '6px solid #333');
+
+    const sidebar_info_rows = [
+      ['Locus ID:', locusId],
+      ['Description:', desc],
+      ['Contig:', scaffoldId],
+      ['Start:', begin],
+      ['End:', end],
+      ['Strand:', strand]
+    ];
+    if (pseudo) sidebar_info_rows.push(['(Pseudogene)', '']);
+
+    sgb.sidebar_div.selectAll('.sidebar_info_row')
+      .data(sidebar_info_rows)
+      .enter()
+      .append('p')
+        .attr('class', 'sidebar_info_row')
+        .html((d) => `<strong>${d[0]}</strong> ${d[1]}`);
+
+    sgb.sidebar_div.append('p').append('button')
+      .html('Copy DNA Sequence')
+      .on('click', function() {
+        const seq = sgb.get_sequence(begin, end, scaffoldId, String(strand) === '-' ? '-' : '+');
+        copy_sequence(seq, this);
+      });
+
+    if (sgb.aa_seqs && Object.keys(sgb.aa_seqs).length > 0) {
+      if (locusId in sgb.aa_seqs) {
+        const aa_seq = sgb.aa_seqs[locusId];
+        sgb.sidebar_div.append('p').append('button')
+          .html('Copy AA Sequence')
+          .on('click', function() {
+            copy_sequence(aa_seq, this);
+          });
+        sgb.sidebar_div.append('p').append('a')
+          .attr('href', `https://fast.genomics.lbl.gov/cgi/findHomologs.cgi?seqDesc=${locusId}&seq=${aa_seq}`)
+          .attr('target', '_blank')
+          .html('Find homologs with fast.genomics');
+      } else {
+        sgb.sidebar_div.append('p').html('No AA sequence available');
+      }
+    }
+
+    if (effective_orgId && !String(effective_orgId).includes('ECRC')) {
+      sgb.sidebar_div.append('p').append('a')
+        .attr('href', `https://fit.genomics.lbl.gov/cgi-bin/domains.cgi?orgId=${effective_orgId}&locusId=${locusId}`)
+        .attr('target', '_blank')
+        .html('Protein Info');
+    }
+  }
+}
 
 const development_mode = 'production'; // 'localdev'; //'development';
 
@@ -141,10 +213,12 @@ class customGeneTableTrack extends geneTableTrack {
   click_function(gene_object) {
     this.sgb.sidebar_div.selectAll('*').remove();
     sidebar_morgan_info(this.sgb, gene_object);
-    this.sgb.sidebar_div.append('p').append('a')
-      .attr('href', `https://ecocyc.org/gene?orgid=${ECOCYC_ids[this.sgb.orgId]}&id=${gene_object.ecocyc_id}`)
-      .attr('target', '_blank')
-      .html('EcoCyc page')
+    if (gene_object.ecocyc_id) {
+      this.sgb.sidebar_div.append('p').append('a')
+        .attr('href', `https://ecocyc.org/gene?orgid=${ECOCYC_ids[this.sgb.orgId]}&id=${gene_object.ecocyc_id}`)
+        .attr('target', '_blank')
+        .html('EcoCyc page')
+    }
     this.sgb.sidebar_content.node().scrollTop = 0;
     this.sgb.show_sidebar();
   }
@@ -155,10 +229,12 @@ class customHeatmapTrack extends heatmapTrack {
     this.sgb.sidebar_div.selectAll('*').remove();
     sidebar_effect_section(this.sgb, gene_object, col)
     sidebar_morgan_info(this.sgb, gene_object);
-    this.sgb.sidebar_div.append('p').append('a')
-      .attr('href', `https://ecocyc.org/gene?orgid=${ECOCYC_ids[this.sgb.orgId]}&id=${gene_object.ecocyc_id}`)
-      .attr('target', '_blank')
-      .html('EcoCyc page')
+    if (gene_object.ecocyc_id) {
+      this.sgb.sidebar_div.append('p').append('a')
+        .attr('href', `https://ecocyc.org/gene?orgid=${ECOCYC_ids[this.sgb.orgId]}&id=${gene_object.ecocyc_id}`)
+        .attr('target', '_blank')
+        .html('EcoCyc page')
+    }
     this.sgb.sidebar_content.node().scrollTop = 0;
     this.sgb.show_sidebar();
   }
@@ -560,16 +636,19 @@ async function load_browser(strain, contig, region, focal_col=null) {
   const gene_table_file = `../data/${strain}/genes_w_ecocyc_dubseq_ref.tab`;
 
   const metadata = await d3.csv('../data/Dubseq_sets.csv');
-  let example_time_zeros = {};
-  metadata.forEach(d => {
-    for (let col of d.time0.split(';')) {
-      example_time_zeros[d.phage] = col; // just keep overwriting, any time zero example is good enough
-    }
-  });
   const assays = metadata.filter(d => d.nickname == strain);
   console.log('Assays for strain', strain, assays);
 
-  const icols = ['locusId', 'sysName', 'scaffoldId', 'begin', 'end', 'strand', 'name', 'desc', 'ecocyc_id'];
+  let example_time_zeros = {};
+  assays.forEach(d => {
+    if (d.time0) {
+      for (let col of d.time0.split(';')) {
+        example_time_zeros[d.phage] = col;
+      }
+    }
+  });
+
+  const icols = ['locusId', 'sysName', 'scaffoldId', 'begin', 'end', 'strand', 'name', 'desc'];
   const dubseq_data = await aq.loadArrow(dubseq_file);
   console.log('DubSeq data loaded:', dubseq_data);
   const data_cols = assays.map(d => ({name: d.phage_rep, column: d.set}));
@@ -589,10 +668,25 @@ async function load_browser(strain, contig, region, focal_col=null) {
     'EV212',
   ]
 
+  const [seqs, aa_seqs] = await Promise.all([
+    load_fasta(fna),
+    load_fasta(faa).catch(() => ({}))
+  ]);
+
   // Clear loading spinner
   b_div.html('');
 
-  const my_browser = new SimpleGenomeBrowser(strain, true, window.innerWidth - 20, b_div, {'fasta_file': fna, 'aa_file': faa, 'starting_contig': contig, 'starting_domain': region, show_strain: false, sidebar_to_start: true, saved_state: initial_saved_state});
+  const my_browser = new SimpleGenomeBrowser(seqs, true, b_div, {
+    starting_contig: contig,
+    starting_domain: region,
+    aa_seqs,
+    sidebar_to_start: true,
+    saved_state: initial_saved_state,
+    title: strain,
+    orgId: strain
+  });
+  my_browser.orgId = strain;
+  window.browser_instance = my_browser;
 
   my_browser.loadingPromise.then(sgb_instance => {
     const gtt = new customGeneTableTrack(sgb_instance, 'Gene Track', {load_threshold: 10000000}, gene_table_file);
@@ -603,11 +697,11 @@ async function load_browser(strain, contig, region, focal_col=null) {
     cht.filter_by_strain_count = false; // used for RBTnSeq, here we are just showing raw data with caveats
     sgb_instance.add_track(cht);
     
-    const subtrack_data = {}
-    subtrack_data['count'] = new serverFeatureData(sgb_instance, 'dubseq_count_data', fetch_path, {strain_name: strain, file_type: 'counts'}, {contig_col: 'scaffold'});
-    subtrack_data['count'].base_columns = subtrack_data['count'].base_columns.concat([{name: 'barcode', dtype: 'str'}]); // need to fetch for coloring
-    subtrack_data['fit'] = new serverFeatureData(sgb_instance, 'dubseq_fit_data', fetch_path, {strain_name: strain, file_type: 'fits'}, {contig_col: 'scaffold'});
-    subtrack_data['fit'].base_columns = subtrack_data['fit'].base_columns.concat([{name: 'barcode', dtype: 'str'}]); // need to fetch for coloring
+    const subtrack_data = {};
+    const count_parquet = `../data/${strain}/DubSeq_counts.parquet`;
+    const fit_parquet = `../data/${strain}/DubSeq_scores.parquet`;
+    subtrack_data['count'] = new staticParquetFeatureData(sgb_instance, 'dubseq_count_data', count_parquet, {contig_col: 'scaffold', start_col: 'begin', end_col: 'end', base_columns: ['barcode']});
+    subtrack_data['fit'] = new staticParquetFeatureData(sgb_instance, 'dubseq_fit_data', fit_parquet, {contig_col: 'scaffold', start_col: 'begin', end_col: 'end', base_columns: ['barcode']});
     
     // subtrack stuff
     cht.subtracks = {'count': [], 'fit': []};

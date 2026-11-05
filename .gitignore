@@ -1,0 +1,36 @@
+# Large dataset files (too large for GitHub; uploaded manually to server)
+*.parquet
+
+# Jupyter and scratch files
+Ecoli_phages/scratch.ipynb
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Local development symlink for SimpleGenomeBrowser
+**/barseq_browser/src/SimpleGenomeBrowser
+
+# macOS system and temporary files
+.DS_Store
+**/.DS_Store
+._*
+
+# Editor and IDE configurations / swap files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.bak
+
+# Environment and logs
+.env
+.env.*
+*.log
+
+CLAUDE.md
+

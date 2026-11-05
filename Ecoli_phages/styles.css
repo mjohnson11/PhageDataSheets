@@ -833,6 +833,34 @@ thead .sticky-col-2 {
 /* ============================================
    GENOME VIEWER
    ============================================ */
+.genome-section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 20px;
+    margin-bottom: 8px;
+}
+
+.genome-section-header h2 {
+    margin: 0;
+}
+
+.genome-header-link {
+    font-size: 14px;
+    color: var(--accent-primary);
+    text-decoration: underline;
+}
+
+.genome-header-link:hover {
+    filter: brightness(1.2);
+}
+
+.genome-header-accession {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
 #genome-viewer {
     width: 100%;
     min-height: 130px;

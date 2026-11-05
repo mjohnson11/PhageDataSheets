@@ -9,7 +9,7 @@ let networkWidth, networkHeight;
 
 async function loadData() {
     try {
-        phageData = await d3.tsv('./data/Table_S1_Phages.tsv');
+        phageData = await d3.tsv('./data/Table_S1_updated.tsv');
         
         const ntwResponse = await fetch('./data/c1_new.ntw');
         const ntwText = await ntwResponse.text();

@@ -1,4 +1,4 @@
-import { load_browser } from "../src/PhageBrowser.js";
+import { load_browser } from "../src/PhageBrowser.js?v=2";
 
 document.addEventListener('DOMContentLoaded', () => {
   // Your code to run after the DOM is ready goes here!
